@@ -3,14 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="OneFill - Clean and modern AI-ready document collection and storage system.">
-  <title>OneFill • Document Collection Repository</title>
+  <meta name="description" content="OneFill - Document scanning, text extraction, OCR, and 10-domain automatic classification system.">
+  <title>OneFill • Document Scanner & Repository</title>
   
   <!-- Modern Google Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
+  <!-- Extraction & OCR Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -21,7 +26,7 @@
     <header class="top-nav">
       <div class="brand-wrapper">
         <div class="brand-icon-box" aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
             <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -32,44 +37,44 @@
         <div>
           <div class="brand-title">
             OneFill
-            <span class="brand-tag">Collection System</span>
+            <span class="brand-tag">OCR &amp; Classifier</span>
           </div>
-          <div class="brand-subtitle">AI-Powered Centralized Document Ingestion & Storage</div>
+          <div class="brand-subtitle">Document Scanning &amp; Category Repository</div>
         </div>
       </div>
 
       <div class="nav-actions">
         <div class="stage-badge">
           <span class="pulse-dot"></span>
-          <span>Core Module Active</span>
+          <span>Scanner &amp; OCR Engine Active</span>
         </div>
       </div>
     </header>
 
     <!-- Page Intro Header -->
     <section class="hero-header">
-      <h1>AI-Powered Document <span>Collection</span></h1>
-      <p>Upload and organize your organization's documents in one unified repository. Securely stored and structured for upcoming downstream intelligence workflows.</p>
+      <h1>Document <span>Scanning &amp; Classification</span></h1>
+      <p>Upload documents or images to automatically extract text via OCR, scan contents, and accurately classify them into 10 structured categories.</p>
     </section>
 
     <!-- Metrics Bar -->
     <section class="stats-bar" aria-label="Repository Metrics">
       <div class="stat-card">
         <div class="stat-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
             <polyline points="13 2 13 9 20 9"></polyline>
           </svg>
         </div>
         <div class="stat-info">
           <div class="stat-value" id="stat-total-docs">0</div>
-          <div class="stat-label">Total Documents</div>
+          <div class="stat-label">Stored Documents</div>
         </div>
       </div>
 
       <div class="stat-card">
         <div class="stat-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
@@ -83,56 +88,53 @@
 
       <div class="stat-card">
         <div class="stat-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
           </svg>
         </div>
         <div class="stat-info">
-          <div class="stat-value" id="stat-latest-date">--</div>
-          <div class="stat-label">Last Uploaded</div>
+          <div class="stat-value" id="stat-scanned-count">0</div>
+          <div class="stat-label">Auto-Classified</div>
         </div>
       </div>
     </section>
 
     <!-- Main Workspace Layout -->
     <main class="main-layout">
-      <!-- Left Column: Document Upload Form -->
+      <!-- Left Column: Document Upload & Intake Form -->
       <section class="panel upload-panel" aria-labelledby="upload-heading">
         <div class="panel-header">
           <h2 class="panel-title" id="upload-heading">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="17 8 12 3 7 8"></polyline>
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
             Upload Document
           </h2>
-          <span class="panel-subtitle">Intake Form</span>
+          <span class="panel-subtitle">OCR &amp; Auto-Classify</span>
         </div>
 
         <form id="doc-upload-form" novalidate>
           <!-- Drag & Drop Zone -->
           <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drop files here or click to browse">
-            <input type="file" id="file-input" hidden accept=".pdf,.doc,.docx,.txt,.csv,.json,.md,.png,.jpg,.jpeg,.xlsx">
+            <input type="file" id="file-input" hidden accept=".pdf,.doc,.docx,.txt,.csv,.json,.md,.png,.jpg,.jpeg,.webp,.bmp">
             <div class="dropzone-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
                 <path d="M12 12v9"></path>
                 <path d="m16 16-4-4-4 4"></path>
               </svg>
             </div>
-            <div class="dropzone-text"><span>Choose a file</span> or drag & drop</div>
-            <div class="dropzone-hint">PDF, DOCX, TXT, CSV, JSON, PNG (up to 50MB)</div>
+            <div class="dropzone-text"><span>Choose a file</span> or drag &amp; drop</div>
+            <div class="dropzone-hint">Image (OCR), PDF, DOCX, TXT, CSV (Up to 50MB)</div>
           </div>
 
           <!-- Staged File Card -->
           <div class="staged-file-card" id="staged-file-card">
             <div class="staged-file-left">
               <div class="staged-file-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
                   <polyline points="13 2 13 9 20 9"></polyline>
                 </svg>
@@ -143,7 +145,7 @@
               </div>
             </div>
             <button type="button" class="btn-remove-file" id="btn-remove-file" title="Remove selected file">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -155,20 +157,26 @@
             <label class="form-label" for="doc-title">
               Document Title <span class="required">*</span>
             </label>
-            <input type="text" id="doc-title" class="form-input" placeholder="e.g., Q3 Financial Report" required>
+            <input type="text" id="doc-title" class="form-input" placeholder="e.g., Medical Prescription or Salary Slip" required>
           </div>
 
-          <!-- Category Field -->
+          <!-- Initial Category Field (Auto-classified upon scan) -->
           <div class="form-group">
             <label class="form-label" for="doc-category">
-              Category
+              Target Category <span style="font-weight: 400; color: var(--brand-accent);">(Auto-classified if left on Auto)</span>
             </label>
             <select id="doc-category" class="form-select">
-              <option value="General">General</option>
-              <option value="Technical">Technical</option>
-              <option value="Financial">Financial</option>
-              <option value="Legal">Legal</option>
-              <option value="Research">Research</option>
+              <option value="AUTO">✨ Auto-Detect via OCR &amp; Content Scan</option>
+              <option value="Personal Documents">Personal Documents</option>
+              <option value="Education">Education</option>
+              <option value="Legal Documents">Legal Documents</option>
+              <option value="Career & Jobs">Career &amp; Jobs</option>
+              <option value="Finance & Banking">Finance &amp; Banking</option>
+              <option value="Business Documents">Business Documents</option>
+              <option value="Health & Medical">Health &amp; Medical</option>
+              <option value="Bills & Utilities">Bills &amp; Utilities</option>
+              <option value="Government Documents">Government Documents</option>
+              <option value="Other Documents">Other Documents</option>
             </select>
           </div>
 
@@ -177,34 +185,34 @@
             <label class="form-label" for="doc-description">
               Notes / Description (Optional)
             </label>
-            <textarea id="doc-description" class="form-textarea" placeholder="Add optional reference details or summaries..."></textarea>
+            <textarea id="doc-description" class="form-textarea" placeholder="Add optional reference details..."></textarea>
           </div>
 
           <!-- Submit Button -->
-          <button type="submit" class="btn-primary" id="btn-submit-doc" disabled>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-              <polyline points="17 21 17 13 7 13 7 21"></polyline>
-              <polyline points="7 3 7 8 15 8"></polyline>
+          <button type="submit" class="btn-primary btn-scan-primary" id="btn-submit-doc" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+              <line x1="12" y1="12" x2="12" y2="21"></line>
+              <polyline points="8 17 12 21 16 17"></polyline>
             </svg>
-            Store Document
+            Scan, Classify &amp; Store
           </button>
         </form>
       </section>
 
-      <!-- Right Column: Collected Documents View -->
+      <!-- Right Column: Document Collection Repository -->
       <section class="panel repository-panel" aria-labelledby="repo-heading">
         <div class="panel-header">
           <div>
             <h2 class="panel-title" id="repo-heading">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                 <line x1="8" y1="21" x2="16" y2="21"></line>
                 <line x1="12" y1="17" x2="12" y2="21"></line>
               </svg>
-              Collected Documents
+              Classified Documents
             </h2>
-            <span class="panel-subtitle">Stored documents ready for future AI ingestion</span>
+            <span class="panel-subtitle">Stored documents organized by auto-assigned category</span>
           </div>
 
           <button type="button" class="btn-secondary" id="btn-clear-all" title="Clear all stored documents">
@@ -220,18 +228,18 @@
         <div class="repo-controls">
           <div class="search-box">
             <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
             </span>
-            <input type="text" id="search-input" class="search-input" placeholder="Search by title, filename, or keyword...">
+            <input type="text" id="search-input" class="search-input" placeholder="Search title, filename, category, or OCR content...">
           </div>
 
           <div class="filter-group">
             <div class="view-toggle" role="radiogroup" aria-label="Display View">
               <button type="button" class="toggle-btn active" id="view-grid-btn" title="Grid View" aria-checked="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="7" height="7"></rect>
                   <rect x="14" y="3" width="7" height="7"></rect>
                   <rect x="14" y="14" width="7" height="7"></rect>
@@ -239,7 +247,7 @@
                 </svg>
               </button>
               <button type="button" class="toggle-btn" id="view-list-btn" title="Table View" aria-checked="false">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="8" y1="6" x2="21" y2="6"></line>
                   <line x1="8" y1="12" x2="21" y2="12"></line>
                   <line x1="8" y1="18" x2="21" y2="18"></line>
@@ -252,17 +260,22 @@
           </div>
         </div>
 
-        <!-- Category Chips -->
+        <!-- 10 Category Filter Chips -->
         <div class="category-chips" id="category-chips">
-          <button type="button" class="chip active" data-category="ALL">All Documents</button>
-          <button type="button" class="chip" data-category="Technical">Technical</button>
-          <button type="button" class="chip" data-category="Financial">Financial</button>
-          <button type="button" class="chip" data-category="Legal">Legal</button>
-          <button type="button" class="chip" data-category="Research">Research</button>
-          <button type="button" class="chip" data-category="General">General</button>
+          <button type="button" class="chip active" data-category="ALL">All Categories</button>
+          <button type="button" class="chip" data-category="Personal Documents">Personal Documents</button>
+          <button type="button" class="chip" data-category="Education">Education</button>
+          <button type="button" class="chip" data-category="Legal Documents">Legal Documents</button>
+          <button type="button" class="chip" data-category="Career & Jobs">Career &amp; Jobs</button>
+          <button type="button" class="chip" data-category="Finance & Banking">Finance &amp; Banking</button>
+          <button type="button" class="chip" data-category="Business Documents">Business Documents</button>
+          <button type="button" class="chip" data-category="Health & Medical">Health &amp; Medical</button>
+          <button type="button" class="chip" data-category="Bills & Utilities">Bills &amp; Utilities</button>
+          <button type="button" class="chip" data-category="Government Documents">Government Documents</button>
+          <button type="button" class="chip" data-category="Other Documents">Other Documents</button>
         </div>
 
-        <!-- Document Content Container (Rendered dynamically) -->
+        <!-- Document Content Container -->
         <div id="documents-container" aria-live="polite">
           <!-- Populated by JavaScript -->
         </div>
@@ -271,9 +284,128 @@
 
     <!-- Footer -->
     <footer class="app-footer">
-      <p>OneFill &bull; AI-Powered Document Collection Repository &bull; Core Module</p>
+      <p>OneFill &bull; Document Scanning &amp; Category Classification System &bull; Powered by OCR</p>
     </footer>
   </div>
+
+  <!-- ========================================================================
+       DOCUMENT SCANNING PANEL (SIDE OF SCREEN)
+       ======================================================================== -->
+  <aside class="scanning-panel" id="scanning-panel" aria-label="Document Scanner Panel">
+    <div class="scan-panel-header">
+      <div class="scan-header-left">
+        <div class="scan-header-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+          </svg>
+        </div>
+        <div class="scan-header-title">Document Scanner &amp; Classifier</div>
+      </div>
+      <button type="button" class="btn-close-scanner" id="btn-close-scanner" aria-label="Close Scanner">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="scan-panel-body">
+      <!-- Visual Viewport with Scanning Laser Animation -->
+      <div class="scan-viewport" id="scan-viewport">
+        <div class="scan-corner scan-corner-tl"></div>
+        <div class="scan-corner scan-corner-tr"></div>
+        <div class="scan-corner scan-corner-bl"></div>
+        <div class="scan-corner scan-corner-br"></div>
+
+        <!-- Laser Beam & Glow -->
+        <div class="scan-laser-beam"></div>
+        <div class="scan-laser-glow"></div>
+
+        <!-- Document Preview Container -->
+        <div class="scan-preview-content" id="scan-preview-content">
+          <!-- Dynamically populated preview / image / PDF thumbnail -->
+        </div>
+      </div>
+
+      <!-- Real-Time Progress Card -->
+      <div class="scan-status-card">
+        <div class="scan-status-headline">
+          <div class="scan-step-title" id="scan-step-title">
+            <span class="pulse-dot"></span>
+            Initializing Scanner...
+          </div>
+          <div class="scan-progress-pct" id="scan-progress-pct">0%</div>
+        </div>
+        <div class="scan-progress-bar-track">
+          <div class="scan-progress-bar-fill" id="scan-progress-bar-fill"></div>
+        </div>
+        <div class="scan-step-feed" id="scan-step-feed">Analyzing file headers and binary streams...</div>
+      </div>
+
+      <!-- Post-Scan Classification & Category Correction Card -->
+      <div class="scan-result-card" id="scan-result-card" style="display: none;">
+        <div class="scan-result-badge-row">
+          <span class="scan-status-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Scanned &amp; Classified
+          </span>
+          <span class="scan-confidence-badge" id="scan-confidence-badge">Confidence: 92%</span>
+        </div>
+
+        <div>
+          <div style="font-size: 0.9rem; font-weight: 600; color: #fff; margin-bottom: 2px;" id="scan-res-filename">document.pdf</div>
+          <div style="font-size: 0.75rem; color: var(--text-dim);" id="scan-res-meta">Size: 240 KB &bull; Method: OCR</div>
+        </div>
+
+        <!-- Category Correction Section -->
+        <div class="scan-category-box">
+          <label class="scan-category-label" for="scan-category-select">
+            Assigned Category <span style="color: var(--brand-accent);">(Correct if necessary)</span>:
+          </label>
+          <select id="scan-category-select" class="scan-category-select">
+            <option value="Personal Documents">1. Personal Documents</option>
+            <option value="Education">2. Education</option>
+            <option value="Legal Documents">3. Legal Documents</option>
+            <option value="Career & Jobs">4. Career &amp; Jobs</option>
+            <option value="Finance & Banking">5. Finance &amp; Banking</option>
+            <option value="Business Documents">6. Business Documents</option>
+            <option value="Health & Medical">7. Health &amp; Medical</option>
+            <option value="Bills & Utilities">8. Bills &amp; Utilities</option>
+            <option value="Government Documents">9. Government Documents</option>
+            <option value="Other Documents">10. Other Documents</option>
+          </select>
+
+          <div style="margin-top: 8px;">
+            <div style="font-size: 0.675rem; color: var(--text-dim); text-transform: uppercase;">Matched Keyword Signals:</div>
+            <div class="extracted-keywords-wrap" id="scan-keywords-wrap">
+              <!-- Matched keyword tags -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible Extracted OCR Text Snippet -->
+        <div>
+          <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">
+            Extracted OCR Text Preview:
+          </div>
+          <div class="scan-ocr-text-box" id="scan-ocr-text-box">Extracting...</div>
+        </div>
+
+        <button type="button" class="btn-primary" id="btn-save-scanner-result">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Save to Classified Collection
+        </button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Document Inspection & Preview Modal -->
   <div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="modal-doc-title">
@@ -281,7 +413,7 @@
       <div class="modal-header">
         <h3 class="modal-title" id="modal-doc-title">Document Inspection</h3>
         <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close dialog">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -295,7 +427,7 @@
       <div class="modal-footer">
         <button type="button" class="btn-secondary" id="modal-close-action">Close</button>
         <button type="button" class="btn-primary" id="modal-download-action" style="width: auto;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -309,7 +441,9 @@
   <!-- Toast Notification Hub -->
   <div class="toast-container" id="toast-container" aria-live="assertive"></div>
 
-  <!-- Scripts -->
+  <!-- Application Logic -->
+  <script src="classifier.js"></script>
+  <script src="extractor.js"></script>
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>

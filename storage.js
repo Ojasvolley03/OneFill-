@@ -1,10 +1,10 @@
 /**
- * DocVault AI - IndexedDB Storage Engine
- * Provides persistent local storage for documents and file blobs.
+ * OneFill - Persistent IndexedDB Storage Engine
+ * Stores user-uploaded documents, extracted OCR text, thumbnails, and classification tags.
  */
 
-const DB_NAME = 'DocVaultDB';
-const DB_VERSION = 1;
+const DB_NAME = 'OneFillDB';
+const DB_VERSION = 2;
 const STORE_NAME = 'documents';
 
 class DocumentStorage {
@@ -34,7 +34,7 @@ class DocumentStorage {
       };
 
       request.onerror = (event) => {
-        console.error('IndexedDB error:', event.target.error);
+        console.error('OneFill IndexedDB error:', event.target.error);
         reject(event.target.error);
       };
     });
@@ -50,6 +50,17 @@ class DocumentStorage {
       request.onsuccess = () => resolve(doc);
       request.onerror = (e) => reject(e.target.error);
     });
+  }
+
+  async updateDocumentCategory(id, newCategory) {
+    await this.init();
+    const doc = await this.getDocument(id);
+    if (!doc) throw new Error('Document not found');
+    
+    doc.category = newCategory;
+    doc.isUserCorrected = true;
+    doc.updatedAt = new Date().toISOString();
+    return await this.saveDocument(doc);
   }
 
   async getAllDocuments() {
@@ -103,11 +114,6 @@ class DocumentStorage {
       request.onsuccess = () => resolve(true);
       request.onerror = (e) => reject(e.target.error);
     });
-  }
-
-  async purgePreviousData() {
-    await this.init();
-    return this.clearAll();
   }
 }
 

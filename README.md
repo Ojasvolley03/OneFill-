@@ -1,62 +1,58 @@
-# OneFill — AI-Powered Document Collection Repository
+# OneFill — Document Scanning & Classification System
 
-A simple, clean, and modern website built for **OneFill**, an AI-powered document management project.
-
-This version implements the **single core feature**: a centralized **Document Collection System** where users can upload, categorize, inspect, and store their documents in one place with zero external dependencies.
+A simple, clean, and modern web application built for **OneFill**, featuring an Antigravity-inspired dark theme and intelligent document scanning and classification.
 
 ---
 
-## ✨ Features Implemented
+## ✨ Core Features
 
-- **Document Intake & Upload Form**:
-  - Drag-and-drop zone with file picker fallback.
-  - Supports PDF, Word documents (`.doc`, `.docx`), spreadsheets (`.csv`, `.xlsx`), plain text / Markdown (`.txt`, `.md`, `.json`), and images (`.png`, `.jpg`).
-  - Staged file pill preview with instant size calculations and remove option.
-  - Metadata collection: Document Title, Category (`Technical`, `Financial`, `Legal`, `Research`, `General`), and optional notes.
-  - Safe 50MB file validation with client-side feedback.
+### 1. Document Scanning & Text Extraction (OCR)
+- **Scanning Side Panel**: When a user uploads a document, a dedicated scanner panel docks on the side of the screen displaying the document preview alongside an animated laser beam sweep.
+- **Real Text Extraction & OCR**:
+  - **Images (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`)**: Uses **Tesseract.js** client-side OCR running optical character recognition.
+  - **PDFs (`.pdf`)**: Uses **PDF.js** to parse text streams across pages and renders Page 1 onto an offscreen canvas for a crisp visual thumbnail.
+  - **Word Documents (`.docx`)**: Uses **JSZip** to parse `word/document.xml` text nodes directly.
+  - **Text / Code (`.txt`, `.csv`, `.json`, `.md`)**: Native stream text reading.
+  - **Graceful Fallbacks**: Unsupported or corrupted files are handled gracefully via filename and metadata classification without crashing.
 
-- **Unified Collection Repository**:
-  - **Grid & Table (List) Views**: Instant toggle between visual card grid and compact data table.
-  - **Live Search & Filter**: Real-time filtering by keyword, title, filename, or category chips.
-  - **Document Inspection Modal**: Detailed view displaying file metadata, category, size, timestamps, and an integrated preview for text/csv and images.
-  - **Native Download & Deletion**: One-click download of the exact uploaded file blob and safe removal.
+### 2. Automatic 10-Domain Category Classifier
+Analyzes the extracted text content against weighted domain dictionaries to automatically assign the document into **exactly one of these 10 categories**:
+1. **Personal Documents** (Passports, driver's licenses, IDs, birth certificates)
+2. **Education** (Degrees, diplomas, transcripts, syllabi, student IDs)
+3. **Legal Documents** (Contracts, agreements, NDAs, affidavits, court docs)
+4. **Career & Jobs** (Resumes, CVs, offer letters, payslips, experience letters)
+5. **Finance & Banking** (Bank statements, tax invoices, balance sheets, credit cards)
+6. **Business Documents** (Business plans, proposals, pitch decks, meeting minutes)
+7. **Health & Medical** (Prescriptions, lab reports, doctor notes, medical bills)
+8. **Bills & Utilities** (Electricity, water, gas, broadband, telecom bills)
+9. **Government Documents** (Tax returns, SSN, PAN, Aadhaar, visas, official notices)
+10. **Other Documents** (General documents not matching specific criteria)
 
-- **Persistent Client-Side Storage**:
-  - Uses browser **IndexedDB** (`DocVaultDB`). Files persist across page reloads and browser restarts without needing an external database setup.
-  - Clean slate repository: Only documents explicitly uploaded by the user are saved and displayed. Includes a quick "Clear All" action to purge stored documents on demand.
+### 3. Category Correction
+- Users can review the assigned category in the **Scanning Panel** or directly in the **Repository View** (cards and table rows) and correct it using an intuitive dropdown. Corrections are immediately saved to the database.
 
-- **Modern Minimal Design System**:
-  - Dark mode aesthetic with curated deep slate and violet/indigo accents.
-  - Micro-animations, responsive grid layout, and non-intrusive toast notification system.
-  - Zero heavy third-party framework dependencies (Vanilla HTML5, CSS3, ES6+ JavaScript).
+### 4. Antigravity IDE Aesthetics & Persistent Storage
+- Styled with Antigravity's signature sleek dark palette (`#0d1117`, surface `#161b22`, borders `#30363d`).
+- Stored persistently in browser **IndexedDB** (`OneFillDB`).
+- Clean repository: Starts empty, storing strictly documents uploaded by the user with an on-demand "Clear All" action.
 
 ---
 
-## 🚀 Running the Project
+## 🚀 Running Locally
 
-### Option 1: Start the Local Node Server (Recommended)
-From this directory:
 ```bash
 node server.js
 ```
-Then open your browser at:
-```
-http://localhost:3000
-```
-
-### Option 2: Open Directly in Browser
-You can also directly open `index.html` in any modern web browser (Chrome, Edge, Firefox, Safari).
+Open **`http://localhost:3000`** in any web browser.
 
 ---
 
-## 📁 File Structure
+## 🌐 Free Public Web Hosting (GitHub Pages)
 
-```
-docvault-ai/
-├── index.html       # Semantic HTML5 layout with accessible forms and modals
-├── styles.css       # Vanilla CSS3 modern design system with glassmorphism & dark theme
-├── app.js           # Client-side UI interactions, search, filter, and modal preview logic
-├── storage.js       # IndexedDB storage engine for persistent file blob custody
-├── server.js        # Lightweight zero-dependency Node HTTP server
-└── README.md        # Documentation
-```
+Your code is pushed to: **`https://github.com/Ojasvolley03/OneFill-`**
+
+To activate your free public web link:
+1. Go to: **`https://github.com/Ojasvolley03/OneFill-/settings/pages`**
+2. Under **Build and deployment > Source**, select **Deploy from a branch**.
+3. Select branch **`main`** and folder **`/ (root)`**, then click **Save**.
+4. Live site URL: **`https://ojasvolley03.github.io/OneFill-/`**
