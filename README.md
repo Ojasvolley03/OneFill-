@@ -23,7 +23,7 @@ This version implements the **single core feature**: a centralized **Document Co
 
 - **Persistent Client-Side Storage**:
   - Uses browser **IndexedDB** (`DocVaultDB`). Files persist across page reloads and browser restarts without needing an external database setup.
-  - Pre-seeded with 3 realistic sample documents on initial launch (can be reset anytime via the "Reset Samples" button).
+  - Clean slate repository: Only documents explicitly uploaded by the user are saved and displayed. Includes a quick "Clear All" action to purge stored documents on demand.
 
 - **Modern Minimal Design System**:
   - Dark mode aesthetic with curated deep slate and violet/indigo accents.

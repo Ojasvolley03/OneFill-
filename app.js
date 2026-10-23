@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const viewGridBtn = document.getElementById('view-grid-btn');
   const viewListBtn = document.getElementById('view-list-btn');
   const documentsContainer = document.getElementById('documents-container');
-  const btnResetSamples = document.getElementById('btn-reset-samples');
+  const btnClearAll = document.getElementById('btn-clear-all');
 
   // DOM Elements - Modal & Toast
   const previewModal = document.getElementById('preview-modal');
@@ -45,10 +45,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeView = 'grid'; // 'grid' | 'list'
   let currentModalDoc = null;
 
-  // Initialize DB and Seed Data
+  // Initialize DB and ensure all previous/sample data is purged
   try {
     await window.docStorage.init();
-    await window.docStorage.seedInitialDataIfEmpty();
+    
+    // Purge any previous/sample data so only real user uploads exist
+    if (!localStorage.getItem('onefill_data_reset_v1')) {
+      await window.docStorage.clearAll();
+      localStorage.setItem('onefill_data_reset_v1', 'true');
+    }
+
+    // Safeguard: remove any legacy mock sample documents if they exist
+    const existingDocs = await window.docStorage.getAllDocuments();
+    for (const doc of existingDocs) {
+      if (doc.id.startsWith('sample-')) {
+        await window.docStorage.deleteDocument(doc.id);
+      }
+    }
+
     await refreshRepository();
   } catch (err) {
     console.error('Initialization error:', err);
@@ -608,14 +622,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     refreshRepository();
   });
 
-  btnResetSamples.addEventListener('click', async () => {
-    if (confirm('Reset repository back to default sample documents?')) {
-      await window.docStorage.clearAll();
-      await window.docStorage.seedInitialDataIfEmpty();
-      showToast('Sample documents re-initialized.', 'success');
-      await refreshRepository();
-    }
-  });
+  if (btnClearAll) {
+    btnClearAll.addEventListener('click', async () => {
+      const allDocs = await window.docStorage.getAllDocuments();
+      if (allDocs.length === 0) {
+        showToast('Repository is already empty.', 'error');
+        return;
+      }
+      if (confirm('Are you sure you want to delete all stored documents?')) {
+        await window.docStorage.clearAll();
+        showToast('All documents have been deleted.', 'success');
+        await refreshRepository();
+      }
+    });
+  }
 
   /* --------------------------------------------------------------------------
      Helper Utilities
