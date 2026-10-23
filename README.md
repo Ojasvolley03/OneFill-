@@ -31,8 +31,8 @@ Analyzes the extracted text content against weighted domain dictionaries to auto
 ### 3. Category Correction
 - Users can review the assigned category in the **Scanning Panel** or directly in the **Repository View** (cards and table rows) and correct it using an intuitive dropdown. Corrections are immediately saved to the database.
 
-### 4. Antigravity IDE Aesthetics & Persistent Storage
-- Styled with Antigravity's signature sleek dark palette (`#0d1117`, surface `#161b22`, borders `#30363d`).
+### 4. Pale Cream Aesthetic & Persistent Storage
+- Styled with a warm **Pale Cream / Light Ivory aesthetic** (`#FDF6E3`, RGB: 253, 246, 227) paired with crisp white cards, warm espresso typography, and refined ivory borders.
 - Stored persistently in browser **IndexedDB** (`OneFillDB`).
 - Clean repository: Starts empty, storing strictly documents uploaded by the user with an on-demand "Clear All" action.
 
