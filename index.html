@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="OneFill - Clean and modern AI-ready document collection and storage system.">
+  <title>OneFill • Document Collection Repository</title>
+  
+  <!-- Modern Google Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand-wrapper">
+        <div class="brand-icon-box" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">
+            OneFill
+            <span class="brand-tag">Collection System</span>
+          </div>
+          <div class="brand-subtitle">AI-Powered Centralized Document Ingestion & Storage</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="stage-badge">
+          <span class="pulse-dot"></span>
+          <span>Core Module Active</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Intro Header -->
+    <section class="hero-header">
+      <h1>AI-Powered Document <span>Collection</span></h1>
+      <p>Upload and organize your organization's documents in one unified repository. Securely stored and structured for upcoming downstream intelligence workflows.</p>
+    </section>
+
+    <!-- Metrics Bar -->
+    <section class="stats-bar" aria-label="Repository Metrics">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+            <polyline points="13 2 13 9 20 9"></polyline>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-total-docs">0</div>
+          <div class="stat-label">Total Documents</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-total-size">0 KB</div>
+          <div class="stat-label">Storage Allocated</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-latest-date">--</div>
+          <div class="stat-label">Last Uploaded</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Layout -->
+    <main class="main-layout">
+      <!-- Left Column: Document Upload Form -->
+      <section class="panel upload-panel" aria-labelledby="upload-heading">
+        <div class="panel-header">
+          <h2 class="panel-title" id="upload-heading">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Upload Document
+          </h2>
+          <span class="panel-subtitle">Intake Form</span>
+        </div>
+
+        <form id="doc-upload-form" novalidate>
+          <!-- Drag & Drop Zone -->
+          <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drop files here or click to browse">
+            <input type="file" id="file-input" hidden accept=".pdf,.doc,.docx,.txt,.csv,.json,.md,.png,.jpg,.jpeg,.xlsx">
+            <div class="dropzone-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+                <path d="M12 12v9"></path>
+                <path d="m16 16-4-4-4 4"></path>
+              </svg>
+            </div>
+            <div class="dropzone-text"><span>Choose a file</span> or drag & drop</div>
+            <div class="dropzone-hint">PDF, DOCX, TXT, CSV, JSON, PNG (up to 50MB)</div>
+          </div>
+
+          <!-- Staged File Card -->
+          <div class="staged-file-card" id="staged-file-card">
+            <div class="staged-file-left">
+              <div class="staged-file-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                  <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+              </div>
+              <div class="staged-file-details">
+                <div class="staged-file-name" id="staged-file-name">filename.pdf</div>
+                <div class="staged-file-size" id="staged-file-size">0 KB</div>
+              </div>
+            </div>
+            <button type="button" class="btn-remove-file" id="btn-remove-file" title="Remove selected file">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Document Title Field -->
+          <div class="form-group">
+            <label class="form-label" for="doc-title">
+              Document Title <span class="required">*</span>
+            </label>
+            <input type="text" id="doc-title" class="form-input" placeholder="e.g., Q3 Financial Report" required>
+          </div>
+
+          <!-- Category Field -->
+          <div class="form-group">
+            <label class="form-label" for="doc-category">
+              Category
+            </label>
+            <select id="doc-category" class="form-select">
+              <option value="General">General</option>
+              <option value="Technical">Technical</option>
+              <option value="Financial">Financial</option>
+              <option value="Legal">Legal</option>
+              <option value="Research">Research</option>
+            </select>
+          </div>
+
+          <!-- Notes / Description Field -->
+          <div class="form-group">
+            <label class="form-label" for="doc-description">
+              Notes / Description (Optional)
+            </label>
+            <textarea id="doc-description" class="form-textarea" placeholder="Add optional reference details or summaries..."></textarea>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="btn-primary" id="btn-submit-doc" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            Store Document
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Column: Collected Documents View -->
+      <section class="panel repository-panel" aria-labelledby="repo-heading">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="repo-heading">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              Collected Documents
+            </h2>
+            <span class="panel-subtitle">Stored documents ready for future AI ingestion</span>
+          </div>
+
+          <button type="button" class="btn-secondary" id="btn-reset-samples" title="Reset default sample documents">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            Reset Samples
+          </button>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="repo-controls">
+          <div class="search-box">
+            <span class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" id="search-input" class="search-input" placeholder="Search by title, filename, or keyword...">
+          </div>
+
+          <div class="filter-group">
+            <div class="view-toggle" role="radiogroup" aria-label="Display View">
+              <button type="button" class="toggle-btn active" id="view-grid-btn" title="Grid View" aria-checked="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </button>
+              <button type="button" class="toggle-btn" id="view-list-btn" title="Table View" aria-checked="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Chips -->
+        <div class="category-chips" id="category-chips">
+          <button type="button" class="chip active" data-category="ALL">All Documents</button>
+          <button type="button" class="chip" data-category="Technical">Technical</button>
+          <button type="button" class="chip" data-category="Financial">Financial</button>
+          <button type="button" class="chip" data-category="Legal">Legal</button>
+          <button type="button" class="chip" data-category="Research">Research</button>
+          <button type="button" class="chip" data-category="General">General</button>
+        </div>
+
+        <!-- Document Content Container (Rendered dynamically) -->
+        <div id="documents-container" aria-live="polite">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>OneFill &bull; AI-Powered Document Collection Repository &bull; Core Module</p>
+    </footer>
+  </div>
+
+  <!-- Document Inspection & Preview Modal -->
+  <div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="modal-doc-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-doc-title">Document Inspection</h3>
+        <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close dialog">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body" id="modal-doc-body">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="modal-close-action">Close</button>
+        <button type="button" class="btn-primary" id="modal-download-action" style="width: auto;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Document
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Hub -->
+  <div class="toast-container" id="toast-container" aria-live="assertive"></div>
+
+  <!-- Scripts -->
+  <script src="storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
