@@ -1466,3 +1466,142 @@ body {
   color: var(--text-dim);
   font-size: 0.8rem;
 }
+
+/* ==========================================================================
+   AUTHENTICATION & SECURITY PRIVACY STYLES
+   ========================================================================== */
+
+/* User Profile Badge in Navigation */
+.user-auth-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #FAF4E5;
+  border: 1px solid var(--border-muted);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.user-avatar-dot {
+  width: 8px;
+  height: 8px;
+  background: #4F46E5;
+  border-radius: 50%;
+}
+
+.btn-auth-trigger {
+  padding: 6px 14px;
+  font-size: 0.825rem;
+}
+
+/* Authentication Modal Tabs */
+.auth-tabs {
+  display: flex;
+  background: #FAF4E5;
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  margin-bottom: 20px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.auth-tab-btn.active {
+  background: #FFFFFF;
+  color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Realistic Anti-Copying & Anti-Screenshot Protections */
+.preview-content-box,
+.scan-ocr-text-box {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+}
+
+/* Confidential Diagonal Watermark */
+.confidential-watermark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.watermark-text {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgba(79, 70, 229, 0.07);
+  transform: rotate(-25deg);
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* Anti-Shoulder Surfing Blur when window loses focus */
+.privacy-blur-active .modal-body,
+.privacy-blur-active .scan-preview-content,
+.privacy-blur-active .scan-ocr-text-box {
+  filter: blur(10px) !important;
+  transition: filter 0.15s ease-out;
+}
+
+.privacy-notice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.725rem;
+  color: var(--text-dim);
+  background: #FAF4E5;
+  border: 1px solid var(--border-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+  line-height: 1.3;
+}
+
+/* Absolute Print Suppression (Prevents browser printing to paper/PDF) */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  body::before {
+    visibility: visible !important;
+    content: "OneFill Secure Vault: Printing or exporting private documents is strictly blocked by security policy." !important;
+    display: block !important;
+    font-size: 1.5rem !important;
+    font-family: sans-serif !important;
+    padding: 50px !important;
+    text-align: center !important;
+    color: #DC2626 !important;
+  }
+}
+

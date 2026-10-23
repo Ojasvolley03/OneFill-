@@ -46,7 +46,16 @@
       <div class="nav-actions">
         <div class="stage-badge">
           <span class="pulse-dot"></span>
-          <span>Scanner &amp; OCR Engine Active</span>
+          <span>AES-256-GCM Encrypted Vault</span>
+        </div>
+        <div class="user-auth-wrap" id="user-auth-wrap">
+          <button type="button" class="btn-secondary btn-auth-trigger" id="btn-open-auth">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Sign In / Register
+          </button>
         </div>
       </div>
     </header>
@@ -407,9 +416,93 @@
     </div>
   </aside>
 
+  <!-- Authentication & Access Control Modal -->
+  <div class="modal-overlay" id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="auth-modal-title">OneFill Secure Access</h3>
+        <button type="button" class="modal-close-btn" id="auth-modal-close" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab-btn active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" class="auth-tab-btn" id="tab-register" role="tab" aria-selected="false">Create Account</button>
+        </div>
+
+        <div id="auth-error-banner" style="display: none; background: #FEE2E2; border: 1px solid #FECACA; color: #DC2626; padding: 10px 12px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 14px;"></div>
+
+        <form id="auth-form" novalidate>
+          <div class="form-group" id="group-username" style="display: none;">
+            <label class="form-label" for="auth-username">Username <span class="required">*</span></label>
+            <input type="text" id="auth-username" class="form-input" placeholder="e.g., AlexSmith" autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="auth-email" id="label-auth-email">Email or Username <span class="required">*</span></label>
+            <input type="text" id="auth-email" class="form-input" placeholder="name@example.com" required autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="auth-password">Password <span class="required">*</span></label>
+            <input type="password" id="auth-password" class="form-input" placeholder="At least 8 characters" required autocomplete="current-password">
+          </div>
+
+          <button type="submit" class="btn-primary" id="btn-submit-auth" style="margin-top: 10px;">
+            Sign In to OneFill
+          </button>
+        </form>
+
+        <div class="privacy-notice-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Every document is encrypted with AES-256-GCM and strictly restricted to your account.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Re-authentication Modal for Sensitive Actions -->
+  <div class="modal-overlay" id="reauth-modal" role="dialog" aria-modal="true" aria-labelledby="reauth-modal-title">
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="reauth-modal-title">Confirm Password</h3>
+        <button type="button" class="modal-close-btn" id="reauth-modal-close" aria-label="Close dialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+          Clearing all documents permanently purges your private encrypted vault. Enter your password to verify authorization:
+        </p>
+        <div id="reauth-error" style="display: none; background: #FEE2E2; border: 1px solid #FECACA; color: #DC2626; padding: 8px 10px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 12px;"></div>
+        <input type="password" id="reauth-password" class="form-input" placeholder="Your account password" style="margin-bottom: 14px;" autocomplete="current-password">
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-secondary" id="btn-reauth-cancel">Cancel</button>
+          <button type="button" class="btn-primary" id="btn-reauth-confirm" style="background: var(--status-danger); width: auto;">Confirm Purge</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Document Inspection & Preview Modal -->
   <div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="modal-doc-title">
-    <div class="modal-card">
+    <div class="modal-card" style="position: relative;">
+      <!-- Confidential Diagonal Watermark -->
+      <div class="confidential-watermark-overlay" aria-hidden="true">
+        <div class="watermark-text" id="watermark-user-text">CONFIDENTIAL &bull; PRIVATE VIEW</div>
+      </div>
+
       <div class="modal-header">
         <h3 class="modal-title" id="modal-doc-title">Document Inspection</h3>
         <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Close dialog">
