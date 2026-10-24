@@ -11,13 +11,14 @@ const crypto = require('crypto');
 const DATA_DIR = path.join(__dirname, 'private_data');
 const KEYS_DIR = path.join(DATA_DIR, 'keys');
 const VAULT_DIR = path.join(DATA_DIR, 'vault');
+const PROFILES_DIR = path.join(DATA_DIR, 'profiles');
 const KEY_FILE = path.join(KEYS_DIR, 'storage.key');
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Ensure private directories exist with restricted access
 function ensureDirectories() {
-  [DATA_DIR, KEYS_DIR, VAULT_DIR].forEach((dir) => {
+  [DATA_DIR, KEYS_DIR, VAULT_DIR, PROFILES_DIR].forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
@@ -225,6 +226,7 @@ function validateFileSignature(filename, buffer) {
 module.exports = {
   DATA_DIR,
   VAULT_DIR,
+  PROFILES_DIR,
   MAX_FILE_SIZE,
   ensureDirectories,
   encryptBuffer,

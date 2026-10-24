@@ -59,22 +59,57 @@ A clean, modern document management application featuring an authenticated **enc
 
 ---
 
-## 🧪 Security Test Suite
+## ⚡ Feature 2 — AI AutoFill (Automatic Form Filling System)
 
-Run the automated security test suite anytime to verify all protections:
+A secure, intelligent form analysis and auto-filling system that matches user details with strict semantic type-checking and explicit user confirmation.
+
+### 1. Personal Information Profile (Encrypted at Rest)
+- **Save Once**: Users can save identity, family, contact, address, academic, and dynamic custom fields once.
+- **100% Optional**: Every field is optional. Users can save only what they want, edit or delete anytime.
+- **AES-256-GCM Encrypted**: Personal profile data is encrypted at rest using AES-256-GCM in `private_data/profiles/<userId>.enc.json`.
+- **Zero Third-Party AI Leakage**: Semantic matching and OCR processing run 100% locally on your machine without external cloud API calls.
+
+### 2. Uploaded Form Processing & AI Matching Studio
+- **File Support**: PDF forms, form images (PNG/JPG/WEBP), and digital application forms (DOCX, HTML, TXT, JSON).
+- **OCR & Question Detection**: Scans and parses questions, labels, choice options, and input types.
+- **Contextual Semantic Matching**: Distinguishes subtle meanings (e.g., "Father's Name" matches "Parent/Guardian Name" appropriately, "College" vs "University", "Roll Number" vs "Phone").
+- **Reliability Meter**:
+  - **Reliable Match (>= 80%)**: Pre-filled and flagged `Ready to Fill`.
+  - **Uncertain / Missing**: Left un-filled or flagged for manual user review.
+- **Form Actions**:
+  - **Download Filled Form (Formatted PDF)**: Generates a clean, official application document PDF with filled values.
+  - **Export JSON**: Downloads filled data for system integration.
+  - **Copy All Fields**: Copies key-value pairs for quick pasting.
+
+### 3. Live Online Web Form Filling & Browser Extension
+- **Platform Support**:
+  - **Google Forms (`docs.google.com/forms/*`)**: In-depth support for custom Material list items, question text, input fields, textareas, and radio options.
+  - **Generic Web Forms**: Standard `<form>`, `<input>`, `<select>`, and `<textarea>` controls across any website.
+- **Explicit Permission Modal**: Displays all matched fields, confidence scores, and preview of values before any field is modified.
+- **No Auto-Submit Policy**: Form submission is never triggered automatically; the user must manually confirm and click submit.
+- **Download Extension**: One-click download available at `GET /api/autofill/extension/download` or directly from the in-app dashboard.
+
+---
+
+## 🧪 Automated Test Suites
+
+### 1. Security & Storage Vault Tests
 ```bash
 node test_security.js
 ```
-Validates:
+Validates 21 security assertions: AES-256-GCM vault encryption, IDOR user isolation, SHA-256 tamper detection, magic byte validation, and session revocation.
+
+### 2. AI AutoFill & Semantic Matching Tests
+```bash
+node test_autofill.js
+```
+Validates 19 functional and security assertions:
 - Unauthenticated access prevention (401)
-- Direct key / code path traversal blocks (403)
-- User registration & session token generation with HttpOnly cookies
-- Magic byte validation & spoofing rejection
-- Path traversal filename sanitization
-- AES-256-GCM encryption at rest in private vault (no plaintext on disk)
-- IDOR cross-user access prevention (Bob cannot view, download, update, or delete Alice's documents)
-- Tampering detection with bitflip simulation
-- Session termination & revocation on logout
+- Encrypted profile storage at rest (AES-256-GCM)
+- Cross-user IDOR isolation
+- "Full Name", "Parent/Guardian", "Email", "College", "Roll Number" semantic matching
+- Missing fields left blank without erroneous auto-population
+- Extension ZIP packaging and download
 
 ---
 
@@ -84,3 +119,8 @@ Validates:
 node server.js
 ```
 Open **`http://localhost:3000`** in any web browser.
+
+- **Document Scanner & Vault**: `http://localhost:3000` (Tab 1)
+- **AI AutoFill & Form Studio**: `http://localhost:3000` (Tab 2)
+- **Live Form Simulator & Extension Hub**: `http://localhost:3000` (Tab 3)
+

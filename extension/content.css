@@ -1,0 +1,259 @@
+/* OneFill Browser Extension - Injected Content CSS */
+
+.onefill-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(20, 15, 10, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  z-index: 2147483640 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.onefill-modal-box {
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+  width: 90% !important;
+  max-width: 520px !important;
+  max-height: 85vh !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid #EADFC7 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  animation: onefill-fade-in 0.2s ease-out !important;
+}
+
+@keyframes onefill-fade-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.onefill-modal-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 16px 20px !important;
+  background: #FDF6E3 !important;
+  border-bottom: 1px solid #EADFC7 !important;
+}
+
+.onefill-header-brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.onefill-logo-pill {
+  background: #4F46E5 !important;
+  color: #FFFFFF !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.onefill-modal-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #2B2520 !important;
+}
+
+.onefill-close-btn {
+  background: none !important;
+  border: none !important;
+  font-size: 22px !important;
+  color: #8F8474 !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  padding: 4px !important;
+}
+
+.onefill-close-btn:hover {
+  color: #2B2520 !important;
+}
+
+.onefill-modal-body {
+  padding: 18px 20px !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+}
+
+.onefill-modal-desc {
+  font-size: 13.5px !important;
+  color: #685E53 !important;
+  margin: 0 0 14px 0 !important;
+  line-height: 1.45 !important;
+}
+
+.onefill-fields-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  max-height: 320px !important;
+  overflow-y: auto !important;
+  margin-bottom: 14px !important;
+  padding-right: 4px !important;
+}
+
+.onefill-field-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+  background: #FAF5E8 !important;
+  border: 1px solid rgba(90, 75, 55, 0.08) !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.onefill-field-item:hover {
+  background: #F5EBD4 !important;
+}
+
+.onefill-field-check {
+  width: 17px !important;
+  height: 17px !important;
+  accent-color: #4F46E5 !important;
+  cursor: pointer !important;
+}
+
+.onefill-field-meta {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.onefill-field-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #2B2520 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.onefill-field-value {
+  font-size: 12px !important;
+  color: #4F46E5 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-top: 2px !important;
+}
+
+.onefill-confidence-tag {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #059669 !important;
+  background: rgba(5, 150, 105, 0.1) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.onefill-security-notice {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: #059669 !important;
+  background: rgba(5, 150, 105, 0.08) !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(5, 150, 105, 0.2) !important;
+}
+
+.onefill-modal-footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  padding: 14px 20px !important;
+  background: #FDF6E3 !important;
+  border-top: 1px solid #EADFC7 !important;
+}
+
+.onefill-btn-secondary {
+  background: #FFFFFF !important;
+  border: 1px solid #EADFC7 !important;
+  color: #685E53 !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.onefill-btn-primary {
+  background: #4F46E5 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  padding: 8px 18px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3) !important;
+}
+
+.onefill-btn-primary:hover {
+  background: #4338CA !important;
+}
+
+/* Field highlight animation when filled */
+.onefill-autofilled-glow {
+  outline: 2px solid #059669 !important;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.35) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Top Toast Banner */
+.onefill-toast-banner {
+  position: fixed !important;
+  top: 18px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2147483645 !important;
+  background: #2B2520 !important;
+  color: #FFFFFF !important;
+  padding: 10px 18px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13.5px !important;
+  animation: onefill-fade-in 0.2s ease-out !important;
+}
+
+.onefill-toast-success {
+  border-left: 4px solid #059669 !important;
+}
+
+.onefill-toast-warning {
+  border-left: 4px solid #D97706 !important;
+}
+
+.onefill-toast-badge {
+  background: #4F46E5 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.onefill-toast-close {
+  background: none !important;
+  border: none !important;
+  color: #8F8474 !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+}

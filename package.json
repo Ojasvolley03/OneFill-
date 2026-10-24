@@ -1,0 +1,23 @@
+{
+  "name": "onefill",
+  "version": "1.0.0",
+  "description": "OneFill - Secure Document Scanner, 10-Domain Classification & AI AutoFill System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_security.js && node test_autofill.js",
+    "test:security": "node test_security.js",
+    "test:autofill": "node test_autofill.js"
+  },
+  "keywords": [
+    "document-scanner",
+    "ocr",
+    "classification",
+    "autofill",
+    "form-filler",
+    "security",
+    "aes-256-gcm"
+  ],
+  "author": "OneFill Team",
+  "license": "ISC"
+}

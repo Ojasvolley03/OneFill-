@@ -9,6 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const db = require('./db');
 const security = require('./security');
+const { AutoFillMatcher, PROFILE_FIELDS } = require('./autofill_matcher');
+const zipUtil = require('./zip_util');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -24,8 +26,20 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.pdf': 'application/pdf',
-  '.txt': 'text/plain; charset=utf-8'
+  '.txt': 'text/plain; charset=utf-8',
+  '.zip': 'application/zip'
 };
+
+// Cross-Origin Resource Sharing for Extension & Web Applications
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+}
 
 // Security Headers applied to every response
 function applySecurityHeaders(res) {
@@ -128,6 +142,13 @@ const server = http.createServer(async (req, res) => {
   });
 
   try {
+    if (method === 'OPTIONS') {
+      applyCorsHeaders(req, res);
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     // ------------------------------------------------------------------------
     // API: Authentication Endpoints
     // ------------------------------------------------------------------------
@@ -190,11 +211,110 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/auth/me' && method === 'GET') {
+      applyCorsHeaders(req, res);
       const auth = resolveAuth(req);
       if (!auth) {
         return sendJson(res, 401, { authenticated: false });
       }
       return sendJson(res, 200, { authenticated: true, user: auth.user });
+    }
+
+    // ------------------------------------------------------------------------
+    // API: AI AutoFill (Protected - Personal Information Profile & Form Engine)
+    // ------------------------------------------------------------------------
+    if (pathname.startsWith('/api/autofill')) {
+      applyCorsHeaders(req, res);
+
+      // Public schema descriptor
+      if (pathname === '/api/autofill/schema' && method === 'GET') {
+        return sendJson(res, 200, { fields: PROFILE_FIELDS });
+      }
+
+      // Extension ZIP download
+      if (pathname === '/api/autofill/extension/download' && method === 'GET') {
+        const extDir = path.join(__dirname, 'extension');
+        let zipBuf;
+        try {
+          const prebuiltZip = path.join(__dirname, 'onefill-autofill-extension.zip');
+          if (fs.existsSync(prebuiltZip)) {
+            zipBuf = fs.readFileSync(prebuiltZip);
+          } else {
+            zipBuf = zipUtil.zipDirectory(extDir);
+          }
+        } catch (e) {
+          zipBuf = zipUtil.zipDirectory(extDir);
+        }
+
+        applySecurityHeaders(res);
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', 'attachment; filename="onefill-autofill-extension.zip"');
+        res.setHeader('Content-Length', zipBuf.length);
+        res.writeHead(200);
+        res.end(zipBuf);
+        return;
+      }
+
+      // Authentication required for profile data and form processing
+      const auth = resolveAuth(req);
+      if (!auth) {
+        return sendJson(res, 401, { error: 'Unauthorized: Authentication required to access AI AutoFill.' });
+      }
+      const userId = auth.user.id;
+
+      // GET /api/autofill/profile -> Retrieve decrypted personal profile
+      if (pathname === '/api/autofill/profile' && method === 'GET') {
+        const profile = db.getUserProfile(userId);
+        return sendJson(res, 200, { profile });
+      }
+
+      // PUT /api/autofill/profile -> Save/update encrypted personal profile
+      if (pathname === '/api/autofill/profile' && method === 'PUT') {
+        const bodyBuf = await readRequestBody(req, 1024 * 100);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        try {
+          const savedProfile = db.saveUserProfile(userId, payload);
+          return sendJson(res, 200, {
+            message: 'Personal Information Profile securely encrypted and saved.',
+            profile: savedProfile
+          });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message });
+        }
+      }
+
+      // DELETE /api/autofill/profile -> Delete/reset profile
+      if (pathname === '/api/autofill/profile' && method === 'DELETE') {
+        db.deleteUserProfile(userId);
+        return sendJson(res, 200, { message: 'Profile information permanently deleted.' });
+      }
+
+      // POST /api/autofill/analyze-form -> Parse and match uploaded form against user profile
+      if (pathname === '/api/autofill/analyze-form' && method === 'POST') {
+        const bodyBuf = await readRequestBody(req, 1024 * 1024 * 10);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid form analysis payload.' });
+        }
+
+        const { formText, explicitFields, formTitle } = payload;
+        const profile = db.getUserProfile(userId);
+        const analysis = AutoFillMatcher.analyzeForm(formText || '', profile, explicitFields);
+
+        return sendJson(res, 200, {
+          formTitle: formTitle || 'Uploaded Form',
+          ...analysis
+        });
+      }
+
+      return sendJson(res, 404, { error: 'AutoFill route not found.' });
     }
 
     // ------------------------------------------------------------------------

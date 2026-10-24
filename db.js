@@ -404,6 +404,130 @@ function sanitizeDocMetadata(doc) {
   };
 }
 
+// --------------------------------------------------------------------------
+// AI AutoFill: Personal Information Profile (Encrypted with AES-256-GCM)
+// --------------------------------------------------------------------------
+
+function getDefaultProfile() {
+  return {
+    fullName: '',
+    fatherName: '',
+    motherName: '',
+    email: '',
+    phone: '',
+    dob: '',
+    gender: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: '',
+    college: '',
+    university: '',
+    course: '',
+    branch: '',
+    rollNumber: '',
+    educationDetails: '',
+    passingYear: '',
+    cgpaOrPercentage: '',
+    otherInfo: '',
+    customFields: [],
+    updatedAt: null
+  };
+}
+
+function getUserProfile(userId) {
+  if (!userId) return null;
+  security.ensureDirectories();
+
+  const profilePath = path.join(security.PROFILES_DIR, `${userId}.enc.json`);
+  if (!fs.existsSync(profilePath)) {
+    return getDefaultProfile();
+  }
+
+  try {
+    const raw = fs.readFileSync(profilePath, 'utf8');
+    const encRecord = JSON.parse(raw);
+    const cipherBuf = Buffer.from(encRecord.ciphertext, 'base64');
+    const plainBuf = security.decryptBuffer(cipherBuf, encRecord.iv, encRecord.authTag);
+    const profile = JSON.parse(plainBuf.toString('utf8'));
+    return { ...getDefaultProfile(), ...profile, updatedAt: encRecord.updatedAt || null };
+  } catch (err) {
+    console.error(`Failed to decrypt profile for user ${userId}:`, err.message);
+    return getDefaultProfile();
+  }
+}
+
+function saveUserProfile(userId, data = {}) {
+  if (!userId) throw new Error('User ID required.');
+  security.ensureDirectories();
+
+  const current = getUserProfile(userId) || getDefaultProfile();
+
+  // Sanitize incoming fields (keep optional)
+  const allowedKeys = [
+    'fullName', 'fatherName', 'motherName', 'email', 'phone', 'dob',
+    'gender', 'address', 'city', 'state', 'zipCode', 'country',
+    'college', 'university', 'course', 'branch', 'rollNumber',
+    'educationDetails', 'passingYear', 'cgpaOrPercentage', 'otherInfo'
+  ];
+
+  const updated = { ...current };
+
+  for (const key of allowedKeys) {
+    if (key in data) {
+      updated[key] = typeof data[key] === 'string' ? data[key].trim().slice(0, 300) : '';
+    }
+  }
+
+  // Handle custom fields
+  if (Array.isArray(data.customFields)) {
+    updated.customFields = data.customFields
+      .filter((f) => f && (f.label || f.key))
+      .slice(0, 20)
+      .map((f, idx) => ({
+        key: (f.key || `custom_${idx + 1}`).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50),
+        label: String(f.label || '').trim().slice(0, 80),
+        value: String(f.value || '').trim().slice(0, 300)
+      }));
+  }
+
+  const updatedAt = new Date().toISOString();
+  updated.updatedAt = updatedAt;
+
+  // Encrypt at rest with AES-256-GCM
+  const plainBuf = Buffer.from(JSON.stringify(updated), 'utf8');
+  const { ciphertext, iv, authTag } = security.encryptBuffer(plainBuf);
+
+  const encRecord = {
+    userId,
+    iv,
+    authTag,
+    ciphertext: ciphertext.toString('base64'),
+    updatedAt
+  };
+
+  const profilePath = path.join(security.PROFILES_DIR, `${userId}.enc.json`);
+  atomicWrite(profilePath, encRecord);
+
+  return updated;
+}
+
+function deleteUserProfile(userId) {
+  if (!userId) return false;
+  const profilePath = path.join(security.PROFILES_DIR, `${userId}.enc.json`);
+  if (fs.existsSync(profilePath)) {
+    try {
+      fs.unlinkSync(profilePath);
+      return true;
+    } catch (e) {
+      console.warn('Failed to delete profile file:', e.message);
+      return false;
+    }
+  }
+  return true;
+}
+
 module.exports = {
   createUser,
   authenticateUser,
@@ -417,5 +541,8 @@ module.exports = {
   getUserDocumentFile,
   updateUserDocumentCategory,
   deleteUserDocument,
-  clearAllUserDocuments
+  clearAllUserDocuments,
+  getUserProfile,
+  saveUserProfile,
+  deleteUserProfile
 };

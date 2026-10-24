@@ -216,6 +216,58 @@ class DocumentStorage {
     return true;
   }
 
+  // --------------------------------------------------------------------------
+  // AI AutoFill Client Bridge Methods
+  // --------------------------------------------------------------------------
+
+  async getProfile() {
+    const res = await fetch('/api/autofill/profile', {
+      headers: this.getHeaders()
+    });
+    if (res.status === 401) return null;
+    if (!res.ok) throw new Error('Failed to retrieve personal profile.');
+    const data = await res.json();
+    return data.profile;
+  }
+
+  async saveProfile(profileData) {
+    const res = await fetch('/api/autofill/profile', {
+      method: 'PUT',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(profileData)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save personal profile.');
+    return data.profile;
+  }
+
+  async deleteProfile() {
+    const res = await fetch('/api/autofill/profile', {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete personal profile.');
+    return true;
+  }
+
+  async analyzeForm(payload) {
+    const res = await fetch('/api/autofill/analyze-form', {
+      method: 'POST',
+      headers: this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Form analysis failed.');
+    return data;
+  }
+
+  async getAutoFillSchema() {
+    const res = await fetch('/api/autofill/schema');
+    if (!res.ok) return { fields: [] };
+    return await res.json();
+  }
+
   fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

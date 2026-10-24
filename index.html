@@ -60,11 +60,45 @@
       </div>
     </header>
 
-    <!-- Page Intro Header -->
-    <section class="hero-header">
-      <h1>Document <span>Scanning &amp; Classification</span></h1>
-      <p>Upload documents or images to automatically extract text via OCR, scan contents, and accurately classify them into 10 structured categories.</p>
-    </section>
+    <!-- Top Application Tab Navigation -->
+    <nav class="app-tab-nav" aria-label="Main Application Views">
+      <button type="button" class="app-tab-btn active" id="tab-nav-docs" data-target="view-docs">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        <span>Document Scanner &amp; Vault</span>
+      </button>
+
+      <button type="button" class="app-tab-btn" id="tab-nav-autofill" data-target="view-autofill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>AI AutoFill</span>
+        <span class="tab-badge-new">NEW</span>
+      </button>
+
+      <button type="button" class="app-tab-btn" id="tab-nav-simulator" data-target="view-simulator">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span>Live Forms &amp; Extension Hub</span>
+      </button>
+    </nav>
+
+    <!-- ====================================================================
+         VIEW 1: DOCUMENT SCANNER & VAULT (EXISTING FUNCTIONALITY KEPT 100%)
+         ==================================================================== -->
+    <div id="view-docs" class="app-view-tab active">
+      <!-- Page Intro Header -->
+      <section class="hero-header">
+        <h1>Document <span>Scanning &amp; Classification</span></h1>
+        <p>Upload documents or images to automatically extract text via OCR, scan contents, and accurately classify them into 10 structured categories.</p>
+      </section>
 
     <!-- Metrics Bar -->
     <section class="stats-bar" aria-label="Repository Metrics">
@@ -290,8 +324,538 @@
         </div>
       </section>
     </main>
+    </div> <!-- end #view-docs -->
 
-    <!-- Footer -->
+    <!-- ====================================================================
+         VIEW 2: AI AUTOFILL (PROFILE + FORM SCANNING & MATCHING STUDIO)
+         ==================================================================== -->
+    <div id="view-autofill" class="app-view-tab" style="display: none;">
+      <!-- AutoFill Intro Header -->
+      <section class="hero-header">
+        <h1>AI-Powered <span>Automatic Form Filling</span></h1>
+        <p>Save your personal information once with AES-256-GCM encryption at rest. Upload PDF or image forms to automatically extract questions, semantically match fields with strict type checking, and download filled forms with full user review.</p>
+      </section>
+
+      <!-- AutoFill Workspace Layout -->
+      <div class="autofill-layout">
+        <!-- Left Column: Personal Information Profile -->
+        <section class="panel profile-panel" aria-labelledby="profile-heading">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" id="profile-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Personal Information Profile
+              </h2>
+              <span class="panel-subtitle">Saved once &bull; AES-256-GCM Encrypted &bull; 100% Optional Fields</span>
+            </div>
+          </div>
+
+          <!-- Completeness Meter -->
+          <div class="profile-meter-box">
+            <div class="meter-info">
+              <span>Profile Completeness</span>
+              <span id="profile-completeness-pct">0%</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="profile-completeness-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div id="profile-status-banner" class="status-alert-pill" style="display: none;"></div>
+
+          <form id="profile-form" novalidate>
+            <!-- Group 1: Identity Details -->
+            <div class="profile-section-card">
+              <div class="section-card-title">1. Identity &amp; Personal Info</div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-fullName">Full Name</label>
+                  <input type="text" id="prof-fullName" class="form-input" placeholder="e.g. Alice Walker">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-dob">Date of Birth</label>
+                  <input type="date" id="prof-dob" class="form-input">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="prof-gender">Gender</label>
+                <select id="prof-gender" class="form-select">
+                  <option value="">Select Gender (Optional)</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other / Non-Binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Group 2: Family & Guardians -->
+            <div class="profile-section-card">
+              <div class="section-card-title">2. Family &amp; Parent / Guardian Details</div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-fatherName">Father's Name / Guardian</label>
+                  <input type="text" id="prof-fatherName" class="form-input" placeholder="e.g. Robert Walker">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-motherName">Mother's Name</label>
+                  <input type="text" id="prof-motherName" class="form-input" placeholder="e.g. Sarah Walker">
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 3: Contact & Address -->
+            <div class="profile-section-card">
+              <div class="section-card-title">3. Contact &amp; Residential Address</div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-email">Email Address</label>
+                  <input type="email" id="prof-email" class="form-input" placeholder="name@example.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-phone">Phone / Mobile Number</label>
+                  <input type="tel" id="prof-phone" class="form-input" placeholder="+1 (555) 019-2834">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="prof-address">Street / Mailing Address</label>
+                <input type="text" id="prof-address" class="form-input" placeholder="e.g. 742 Evergreen Terrace, Apt 4B">
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-city">City / District</label>
+                  <input type="text" id="prof-city" class="form-input" placeholder="Springfield">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-state">State / Province</label>
+                  <input type="text" id="prof-state" class="form-input" placeholder="Oregon">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-zipCode">Zip / Postal / PIN Code</label>
+                  <input type="text" id="prof-zipCode" class="form-input" placeholder="97477">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-country">Country</label>
+                  <input type="text" id="prof-country" class="form-input" placeholder="United States">
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 4: Education Details -->
+            <div class="profile-section-card">
+              <div class="section-card-title">4. Education &amp; Academic Details</div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-college">College / Institute Attended</label>
+                  <input type="text" id="prof-college" class="form-input" placeholder="e.g. Springfield Institute of Technology">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-university">University</label>
+                  <input type="text" id="prof-university" class="form-input" placeholder="e.g. University of Oregon">
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label" for="prof-course">Course / Degree</label>
+                  <input type="text" id="prof-course" class="form-input" placeholder="e.g. B.Tech / MBA / B.Sc">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-branch">Branch / Specialization</label>
+                  <input type="text" id="prof-branch" class="form-input" placeholder="e.g. Computer Science">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label" for="prof-rollNumber">Roll / Student ID</label>
+                  <input type="text" id="prof-rollNumber" class="form-input" placeholder="CS2021-089">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-passingYear">Year of Passing</label>
+                  <input type="text" id="prof-passingYear" class="form-input" placeholder="2025">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="prof-cgpaOrPercentage">CGPA / %</label>
+                  <input type="text" id="prof-cgpaOrPercentage" class="form-input" placeholder="9.2 CGPA">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="prof-educationDetails">Education Summary / Highest Qualification</label>
+                <input type="text" id="prof-educationDetails" class="form-input" placeholder="e.g. Bachelor of Technology in CS, Graduated with Honors">
+              </div>
+            </div>
+
+            <!-- Group 5: Other Personal Information & Custom Fields -->
+            <div class="profile-section-card">
+              <div class="section-card-title">5. Other Personal Information &amp; Custom Fields</div>
+              <div class="form-group">
+                <label class="form-label" for="prof-otherInfo">Personal Notes / Remarks</label>
+                <textarea id="prof-otherInfo" class="form-textarea" placeholder="Add any additional details or background..."></textarea>
+              </div>
+
+              <!-- Custom Dynamic Fields Container -->
+              <div class="custom-fields-wrap">
+                <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">
+                  Custom Fields (e.g. LinkedIn, Aadhaar, PAN, Passport, GitHub)
+                </div>
+                <div id="custom-fields-container"></div>
+                <button type="button" class="btn-secondary btn-sm" id="btn-add-custom-field" style="margin-top: 6px;">
+                  + Add Custom Field
+                </button>
+              </div>
+            </div>
+
+            <!-- Profile Form Actions -->
+            <div class="profile-actions-bar">
+              <button type="submit" class="btn-primary" id="btn-save-profile">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save Personal Profile
+              </button>
+
+              <button type="button" class="btn-secondary" id="btn-delete-profile" style="color: var(--status-danger);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Reset Profile
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Right Column: Form Intake, OCR Scanning & AI Matching Studio -->
+        <section class="panel form-intake-panel" aria-labelledby="form-intake-heading">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title" id="form-intake-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                Upload Form &amp; Match
+              </h2>
+              <span class="panel-subtitle">Supports PDF forms, images of forms, and digital applications</span>
+            </div>
+
+            <button type="button" class="btn-secondary btn-sm" id="btn-load-sample-form" title="Quickly test with a sample admission form">
+              ✨ Load Sample Admission Form
+            </button>
+          </div>
+
+          <!-- Form Dropzone -->
+          <div class="dropzone" id="form-dropzone" role="button" tabindex="0" aria-label="Drop form file here or click to browse">
+            <input type="file" id="form-file-input" hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.txt,.json">
+            <div class="dropzone-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <div class="dropzone-text"><span>Choose a form</span> or drag &amp; drop</div>
+            <div class="dropzone-hint">PDF Forms, Scanned Form Images, or Digital Form Files</div>
+          </div>
+
+          <!-- Staged Form Card -->
+          <div class="staged-file-card" id="form-staged-card" style="display: none;">
+            <div class="staged-file-left">
+              <div class="staged-file-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <div class="staged-file-details">
+                <div class="staged-file-name" id="form-staged-name">form.pdf</div>
+                <div class="staged-file-size" id="form-staged-size">0 KB</div>
+              </div>
+            </div>
+            <button type="button" class="btn-remove-file" id="btn-remove-form-file" title="Remove selected form">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Scan & Match Button -->
+          <button type="button" class="btn-primary" id="btn-analyze-uploaded-form" disabled style="margin-top: 14px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Scan &amp; Match Form Fields
+          </button>
+
+          <!-- Form Analysis Studio (Shown once form is scanned) -->
+          <div id="form-studio-container" class="form-studio-container" style="display: none; margin-top: 20px;">
+            <div class="studio-header-row">
+              <div>
+                <h3 class="studio-title" id="studio-form-title">Form Matching Studio</h3>
+                <span class="studio-subtitle">Review matched values, fill uncertain fields, and export filled documents</span>
+              </div>
+              <button type="button" class="btn-secondary btn-sm" id="btn-reset-studio">Close Studio</button>
+            </div>
+
+            <!-- Summary Breakdown Badges -->
+            <div class="studio-summary-box" id="studio-summary-box"></div>
+
+            <!-- Interactive Fields List -->
+            <div class="studio-fields-list" id="studio-fields-list"></div>
+
+            <!-- Studio Action Bar -->
+            <div class="studio-actions-bar">
+              <button type="button" class="btn-primary" id="btn-export-filled-pdf">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download Filled Form (PDF)
+              </button>
+
+              <button type="button" class="btn-secondary" id="btn-export-filled-json">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="8 17 12 21 16 17"></polyline>
+                  <line x1="12" y1="12" x2="12" y2="21"></line>
+                  <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path>
+                </svg>
+                Export JSON
+              </button>
+
+              <button type="button" class="btn-secondary" id="btn-copy-filled-fields">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy All Fields
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div> <!-- end #view-autofill -->
+
+    <!-- ====================================================================
+         VIEW 3: LIVE ONLINE FORMS & BROWSER EXTENSION HUB
+         ==================================================================== -->
+    <div id="view-simulator" class="app-view-tab" style="display: none;">
+      <!-- Hero Header -->
+      <section class="hero-header">
+        <h1>Live Forms <span>&amp; Browser Extension Hub</span></h1>
+        <p>Fill Google Forms and web applications across the internet. Test live form filling below on this testbench or install our official browser extension for Google Forms.</p>
+      </section>
+
+      <!-- Extension Download & Setup Banner -->
+      <section class="extension-guide-card">
+        <div class="ext-guide-left">
+          <div class="ext-badge-pill">Chrome / Edge / Firefox Extension</div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+            OneFill AI AutoFill Browser Assistant
+          </h2>
+          <p style="font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px;">
+            Seamlessly autofill Google Forms and online applications. Always requests your permission first, shows exact details that will be used, and never submits a form automatically.
+          </p>
+          <div class="ext-steps-row">
+            <div class="step-chip"><span>1</span> Download .zip</div>
+            <div class="step-chip"><span>2</span> Enable "Developer mode" in chrome://extensions</div>
+            <div class="step-chip"><span>3</span> Click "Load unpacked" &amp; select folder</div>
+          </div>
+        </div>
+
+        <div class="ext-guide-right">
+          <a href="/api/autofill/extension/download" class="btn-primary" style="text-decoration: none; padding: 12px 20px; display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download Extension (.zip)
+          </a>
+          <span style="font-size: 0.75rem; color: var(--text-dim); text-align: center;">Manifest V3 &bull; Privacy Guaranteed</span>
+        </div>
+      </section>
+
+      <!-- In-Browser Live Form Simulator & Test Playground -->
+      <section class="panel simulator-panel" style="margin-top: 24px;">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              Live Form Filling Simulator &amp; Playground
+            </h2>
+            <span class="panel-subtitle">Experience live automatic form filling right here in your browser</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="simulator-preset-selector" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Form Preset:</label>
+            <select id="simulator-preset-selector" class="form-select" style="width: auto; padding: 6px 12px;">
+              <option value="google-form">Google Forms (Material Design)</option>
+              <option value="web-application">University Admission Application</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Simulator Action Bar -->
+        <div class="sim-action-banner">
+          <div class="sim-action-left">
+            <span class="pulse-dot"></span>
+            <span>Simulating active web form. Click <strong>AutoFill Form</strong> to trigger permission request:</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-primary" id="btn-trigger-sim-autofill" style="width: auto;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              ⚡ AutoFill Form
+            </button>
+            <button type="button" class="btn-secondary" id="btn-reset-sim-form">
+              Reset Form
+            </button>
+          </div>
+        </div>
+
+        <!-- PRESET A: Google Form Simulator -->
+        <div id="sim-google-form-container" class="sim-google-form-wrap">
+          <div class="gf-card gf-header-card">
+            <div class="gf-header-strip"></div>
+            <h1 class="gf-title">2026 University Enrollment &amp; Scholarship Application</h1>
+            <p class="gf-desc">Please complete all fields with your verified personal information. Fields marked with <span style="color: #D93025;">*</span> are required.</p>
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Full Name of Applicant <span class="required">*</span></div>
+            <input type="text" class="gf-input sim-input" data-field-label="Full Name of Applicant" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Date of Birth <span class="required">*</span></div>
+            <input type="date" class="gf-input sim-input" data-field-label="Date of Birth">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Parent / Guardian Full Name</div>
+            <input type="text" class="gf-input sim-input" data-field-label="Parent / Guardian Full Name" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Email Address <span class="required">*</span></div>
+            <input type="email" class="gf-input sim-input" data-field-label="Email Address" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Phone / Contact Number <span class="required">*</span></div>
+            <input type="tel" class="gf-input sim-input" data-field-label="Phone / Contact Number" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Gender</div>
+            <div class="sim-radio-group sim-input" data-field-label="Gender">
+              <label class="gf-radio-label"><input type="radio" name="gf-gender" value="Male"> Male</label>
+              <label class="gf-radio-label"><input type="radio" name="gf-gender" value="Female"> Female</label>
+              <label class="gf-radio-label"><input type="radio" name="gf-gender" value="Other"> Other</label>
+            </div>
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">College / Institute Name <span class="required">*</span></div>
+            <input type="text" class="gf-input sim-input" data-field-label="College / Institute Name" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Course &amp; Branch of Study</div>
+            <input type="text" class="gf-input sim-input" data-field-label="Course / Degree" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Student Roll Number / Registration ID</div>
+            <input type="text" class="gf-input sim-input" data-field-label="Roll Number / Student ID" placeholder="Your answer">
+          </div>
+
+          <div class="gf-card">
+            <div class="gf-question-title">Permanent Residential Address</div>
+            <input type="text" class="gf-input sim-input" data-field-label="Address" placeholder="Your answer">
+          </div>
+
+          <div class="gf-footer-row">
+            <button type="button" class="btn-primary" onclick="alert('Submission verified! (Note: OneFill ensures form submission is never triggered without final manual review.)')" style="background: #673AB7; width: auto;">
+              Submit Form
+            </button>
+            <span style="font-size: 0.75rem; color: #70757A;">Never submit passwords through Google Forms.</span>
+          </div>
+        </div>
+
+        <!-- PRESET B: Web Application Form Simulator -->
+        <div id="sim-web-form-container" class="sim-web-form-wrap" style="display: none;">
+          <div class="webform-card">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;">Graduate Studies Admission Portal</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Full Legal Name</label>
+                <input type="text" class="form-input sim-input" data-field-label="Full Legal Name" placeholder="First and last name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input sim-input" data-field-label="Email Address" placeholder="name@example.com">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Primary Mobile Phone</label>
+                <input type="tel" class="form-input sim-input" data-field-label="Primary Mobile Phone" placeholder="Phone number">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date of Birth</label>
+                <input type="date" class="form-input sim-input" data-field-label="Date of Birth">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Name of College Attended</label>
+                <input type="text" class="form-input sim-input" data-field-label="Name of College Attended" placeholder="Institute / College">
+              </div>
+              <div class="form-group">
+                <label class="form-label">University Name</label>
+                <input type="text" class="form-input sim-input" data-field-label="University Name" placeholder="University">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label class="form-label">Degree / Course</label>
+                <input type="text" class="form-input sim-input" data-field-label="Degree / Course" placeholder="B.Tech, B.Sc, etc.">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Roll Number / Registration No</label>
+                <input type="text" class="form-input sim-input" data-field-label="Roll Number / Registration No" placeholder="Roll No">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mailing Address</label>
+              <textarea class="form-textarea sim-input" data-field-label="Mailing Address" placeholder="Street address, City, State, Country" rows="2"></textarea>
+            </div>
+
+            <button type="button" class="btn-primary" onclick="alert('Submission review confirmed!')" style="width: auto; margin-top: 10px;">
+              Submit Application
+            </button>
+          </div>
+        </div>
+      </section>
+    </div> <!-- end #view-simulator -->
     <footer class="app-footer">
       <p>OneFill &bull; Document Scanning &amp; Category Classification System &bull; Powered by OCR</p>
     </footer>
@@ -538,6 +1102,8 @@
   <script src="classifier.js"></script>
   <script src="extractor.js"></script>
   <script src="storage.js"></script>
+  <script src="autofill_matcher.js"></script>
+  <script src="autofill_ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
