@@ -10,7 +10,31 @@ const path = require('path');
 const db = require('./db');
 const security = require('./security');
 const { AutoFillMatcher, PROFILE_FIELDS } = require('./autofill_matcher');
+const DateExtractor = require('./date_extractor');
 const zipUtil = require('./zip_util');
+
+// Automated Backend Scheduler for Reminder Deadlines & Notifications
+function triggerNotificationCheck() {
+  try {
+    db.checkDueRemindersAndGenerateNotifications(({ userId, reminder, notification }) => {
+      const settings = db.getUserReminderSettings(userId);
+      if (settings && settings.pushSubscriptions && settings.pushSubscriptions.length > 0) {
+        console.log(`[PUSH NOTIFICATION] Dispatched to ${settings.pushSubscriptions.length} subscriptions for user ${userId}: "${notification.title}"`);
+      }
+      if (settings && settings.fcmTokens && settings.fcmTokens.length > 0) {
+        console.log(`[FCM NOTIFICATION] Dispatched to ${settings.fcmTokens.length} device tokens for user ${userId}: "${notification.title}"`);
+      }
+    });
+  } catch (err) {
+    console.error('Scheduler check error:', err.message);
+  }
+}
+
+// Run scheduler every 60 seconds
+const SCHEDULER_INTERVAL_MS = 60 * 1000;
+setInterval(triggerNotificationCheck, SCHEDULER_INTERVAL_MS);
+// Run initial check after 2 seconds
+setTimeout(triggerNotificationCheck, 2000);
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
@@ -94,7 +118,7 @@ async function readRequestBody(req, maxBytes = security.MAX_FILE_SIZE) {
   });
 }
 
-// Authentication resolver
+// Authentication resolver (defaults to Guest user when no session token is provided)
 function resolveAuth(req) {
   const cookies = parseCookies(req);
   let token = cookies.onefill_session;
@@ -106,15 +130,19 @@ function resolveAuth(req) {
     }
   }
 
-  if (!token) return null;
+  // If a session token was explicitly provided, validate it
+  if (token) {
+    const userId = db.validateSession(token);
+    if (!userId) return null; // Invalid or expired session token
 
-  const userId = db.validateSession(token);
-  if (!userId) return null;
+    const user = db.getUserById(userId);
+    if (!user) return null;
 
-  const user = db.getUserById(userId);
-  if (!user) return null;
+    return { user, token, isGuest: user.id === db.GUEST_USER.id };
+  }
 
-  return { user, token };
+  // No session token provided: seamless Guest access out-of-the-box (no login required)
+  return { user: db.GUEST_USER, token: 'guest_session', isGuest: true };
 }
 
 // Send JSON response
@@ -216,7 +244,11 @@ const server = http.createServer(async (req, res) => {
       if (!auth) {
         return sendJson(res, 401, { authenticated: false });
       }
-      return sendJson(res, 200, { authenticated: true, user: auth.user });
+      return sendJson(res, 200, {
+        authenticated: true,
+        user: auth.user,
+        isGuest: auth.user.id === db.GUEST_USER.id
+      });
     }
 
     // ------------------------------------------------------------------------
@@ -378,8 +410,13 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
-      // POST /api/documents/clear-all -> Requires reauthentication for sensitive operation
+      // POST /api/documents/clear-all -> Purge documents (password required for registered accounts, instant for guest)
       if (pathname === '/api/documents/clear-all' && method === 'POST') {
+        if (userId === db.GUEST_USER.id) {
+          db.clearAllUserDocuments(userId);
+          return sendJson(res, 200, { message: 'All guest documents have been cleared.' });
+        }
+
         const bodyBuf = await readRequestBody(req, 1024 * 5);
         let payload = {};
         try {
@@ -474,6 +511,251 @@ const server = http.createServer(async (req, res) => {
       }
 
       return sendJson(res, 404, { error: 'API route not found.' });
+    }
+
+    // ------------------------------------------------------------------------
+    // API: Deadline & Expiry Intelligence (Protected - Reminders & Notifications)
+    // ------------------------------------------------------------------------
+    if (pathname.startsWith('/api/reminders')) {
+      applyCorsHeaders(req, res);
+
+      // Public endpoint: available categories
+      if (pathname === '/api/reminders/categories' && method === 'GET') {
+        return sendJson(res, 200, { categories: db.REMINDER_CATEGORIES });
+      }
+
+      const auth = resolveAuth(req);
+      if (!auth) {
+        return sendJson(res, 401, { error: 'Unauthorized: Authentication required to access reminders.' });
+      }
+      const userId = auth.user.id;
+
+      // GET /api/reminders -> List reminders
+      if (pathname === '/api/reminders' && method === 'GET') {
+        const category = urlObj.searchParams.get('category') || 'ALL';
+        const status = urlObj.searchParams.get('status') || 'all';
+        const search = urlObj.searchParams.get('search') || '';
+        const sort = urlObj.searchParams.get('sort') || 'deadline_asc';
+        const userReminders = db.listUserReminders(userId, { category, status, search, sort });
+        const activeCount = db.countActiveReminders(userId);
+        const settings = db.getUserReminderSettings(userId);
+        return sendJson(res, 200, {
+          reminders: userReminders,
+          activeCount,
+          maxActiveLimit: settings.maxActiveReminders || db.DEFAULT_MAX_ACTIVE_REMINDERS
+        });
+      }
+
+      // POST /api/reminders -> Create reminder (enforces 300 limit)
+      if (pathname === '/api/reminders' && method === 'POST') {
+        const bodyBuf = await readRequestBody(req, 1024 * 100);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        try {
+          const reminder = db.createReminder(userId, payload);
+          triggerNotificationCheck();
+          return sendJson(res, 201, { message: 'Reminder created successfully.', reminder });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message });
+        }
+      }
+
+      // GET /api/reminders/settings
+      if (pathname === '/api/reminders/settings' && method === 'GET') {
+        const settings = db.getUserReminderSettings(userId);
+        const activeCount = db.countActiveReminders(userId);
+        return sendJson(res, 200, { settings, activeCount });
+      }
+
+      // PUT /api/reminders/settings
+      if (pathname === '/api/reminders/settings' && method === 'PUT') {
+        const bodyBuf = await readRequestBody(req, 1024 * 50);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        const updated = db.updateUserReminderSettings(userId, payload);
+        return sendJson(res, 200, { message: 'Settings saved.', settings: updated });
+      }
+
+      // GET /api/reminders/notifications
+      if (pathname === '/api/reminders/notifications' && method === 'GET') {
+        const limit = parseInt(urlObj.searchParams.get('limit') || '50', 10);
+        const data = db.getUserNotifications(userId, limit);
+        return sendJson(res, 200, data);
+      }
+
+      // POST /api/reminders/notifications/read-all
+      if (pathname === '/api/reminders/notifications/read-all' && method === 'POST') {
+        db.markAllNotificationsAsRead(userId);
+        return sendJson(res, 200, { message: 'All notifications marked as read.' });
+      }
+
+      // POST /api/reminders/push-subscription
+      if (pathname === '/api/reminders/push-subscription' && method === 'POST') {
+        const bodyBuf = await readRequestBody(req, 1024 * 50);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        db.savePushSubscription(userId, payload);
+        return sendJson(res, 200, { message: 'Web Push subscription registered successfully.' });
+      }
+
+      // POST /api/reminders/fcm-token
+      if (pathname === '/api/reminders/fcm-token' && method === 'POST') {
+        const bodyBuf = await readRequestBody(req, 1024 * 20);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        if (payload.token) {
+          db.registerFcmToken(userId, payload.token);
+        }
+        return sendJson(res, 200, { message: 'FCM token registered successfully.' });
+      }
+
+      // POST /api/reminders/extract-dates -> OCR / AI date extraction API
+      if (pathname === '/api/reminders/extract-dates' && method === 'POST') {
+        const bodyBuf = await readRequestBody(req, 1024 * 1024 * 5);
+        let payload;
+        try {
+          payload = JSON.parse(bodyBuf.toString('utf8'));
+        } catch (e) {
+          return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+        }
+
+        const { text, filename } = payload;
+        const analysis = DateExtractor.analyze(text || '', filename || '');
+        return sendJson(res, 200, analysis);
+      }
+
+      // POST /api/reminders/trigger-check
+      if (pathname === '/api/reminders/trigger-check' && method === 'POST') {
+        triggerNotificationCheck();
+        const data = db.getUserNotifications(userId, 20);
+        return sendJson(res, 200, { message: 'Notification check triggered.', ...data });
+      }
+
+      // Notifications ID operations: /api/reminders/notifications/:id/read
+      const notifIdMatch = pathname.match(/^\/api\/reminders\/notifications\/([a-zA-Z0-9_-]+)(\/read)?$/);
+      if (notifIdMatch) {
+        const notifId = notifIdMatch[1];
+        const isReadAction = Boolean(notifIdMatch[2]);
+
+        if (isReadAction && (method === 'PATCH' || method === 'POST')) {
+          const updated = db.markNotificationAsRead(userId, notifId);
+          if (!updated) {
+            return sendJson(res, 404, { error: 'Notification not found.' });
+          }
+          return sendJson(res, 200, { notification: updated });
+        }
+
+        if (method === 'DELETE') {
+          const deleted = db.deleteNotification(userId, notifId);
+          if (!deleted) {
+            return sendJson(res, 404, { error: 'Notification not found.' });
+          }
+          return sendJson(res, 200, { message: 'Notification removed.' });
+        }
+      }
+
+      // Reminder ID operations: /api/reminders/:id, /api/reminders/:id/status, /api/reminders/:id/snooze
+      const remIdMatch = pathname.match(/^\/api\/reminders\/([a-zA-Z0-9_-]+)(\/(status|snooze))?$/);
+      if (remIdMatch) {
+        const reminderId = remIdMatch[1];
+        const subAction = remIdMatch[3];
+
+        // GET /api/reminders/:id
+        if (!subAction && method === 'GET') {
+          const reminder = db.getUserReminder(userId, reminderId);
+          if (!reminder) {
+            return sendJson(res, 404, { error: 'Reminder not found or access denied.' });
+          }
+          return sendJson(res, 200, { reminder });
+        }
+
+        // PUT /api/reminders/:id
+        if (!subAction && method === 'PUT') {
+          const bodyBuf = await readRequestBody(req, 1024 * 100);
+          let payload;
+          try {
+            payload = JSON.parse(bodyBuf.toString('utf8'));
+          } catch (e) {
+            return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+          }
+
+          try {
+            const updated = db.updateUserReminder(userId, reminderId, payload);
+            if (!updated) {
+              return sendJson(res, 404, { error: 'Reminder not found or access denied.' });
+            }
+            triggerNotificationCheck();
+            return sendJson(res, 200, { message: 'Reminder updated successfully.', reminder: updated });
+          } catch (err) {
+            return sendJson(res, 400, { error: err.message });
+          }
+        }
+
+        // DELETE /api/reminders/:id
+        if (!subAction && method === 'DELETE') {
+          const deleted = db.deleteUserReminder(userId, reminderId);
+          if (!deleted) {
+            return sendJson(res, 404, { error: 'Reminder not found or access denied.' });
+          }
+          return sendJson(res, 200, { message: 'Reminder deleted successfully.' });
+        }
+
+        // PATCH /api/reminders/:id/status
+        if (subAction === 'status' && method === 'PATCH') {
+          const bodyBuf = await readRequestBody(req, 1024 * 10);
+          let payload;
+          try {
+            payload = JSON.parse(bodyBuf.toString('utf8'));
+          } catch (e) {
+            return sendJson(res, 400, { error: 'Invalid JSON payload.' });
+          }
+
+          const status = payload.status === 'completed' ? 'completed' : 'active';
+          const updated = db.setUserReminderStatus(userId, reminderId, status);
+          if (!updated) {
+            return sendJson(res, 404, { error: 'Reminder not found or access denied.' });
+          }
+          return sendJson(res, 200, { message: `Reminder status set to ${status}.`, reminder: updated });
+        }
+
+        // POST /api/reminders/:id/snooze
+        if (subAction === 'snooze' && method === 'POST') {
+          const bodyBuf = await readRequestBody(req, 1024 * 10);
+          let payload = {};
+          try {
+            payload = JSON.parse(bodyBuf.toString('utf8'));
+          } catch (e) {}
+
+          const snoozeDateOrHours = payload.snoozeUntil || payload.hours || 24;
+          const updated = db.snoozeUserReminder(userId, reminderId, snoozeDateOrHours);
+          if (!updated) {
+            return sendJson(res, 404, { error: 'Reminder not found or access denied.' });
+          }
+          return sendJson(res, 200, { message: 'Reminder snoozed.', reminder: updated });
+        }
+      }
+
+      return sendJson(res, 404, { error: 'Reminder API route not found.' });
     }
 
     // ------------------------------------------------------------------------

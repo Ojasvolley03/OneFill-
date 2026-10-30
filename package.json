@@ -5,9 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node test_security.js && node test_autofill.js",
+    "test": "node test_security.js && node test_autofill.js && node test_reminders.js",
     "test:security": "node test_security.js",
-    "test:autofill": "node test_autofill.js"
+    "test:autofill": "node test_autofill.js",
+    "test:reminders": "node test_reminders.js"
   },
   "keywords": [
     "document-scanner",

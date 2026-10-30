@@ -91,6 +91,55 @@ A secure, intelligent form analysis and auto-filling system that matches user de
 
 ---
 
+## ⏰ Feature 3 — Deadline & Expiry Intelligence System
+
+An autonomous document lifecycle tracker and multi-interval expiry alarm system that detects upcoming due dates, renewal periods, and deadlines using client-side OCR and natural language heuristics.
+
+### 1. Three Intake Methods
+- **Upload Document**: Drag & drop or pick PDF, image, or doc file. Client-side OCR + DateExtractor detects category, document type, expiry/due dates, and amounts.
+- **Scan Using Camera**: Live webcam / smartphone camera stream with visual framing guides. Captures snapshot and runs instant neural OCR date extraction.
+- **Add Manually**: Direct manual reminder creation with custom intervals, repeat options, amount, and priority without requiring document uploads.
+
+### 2. Document Scanning & AI Date Extraction
+- **10 Supported Reminder Categories**:
+  1. *Government & Identity* (Passports, Visas, Driving Licenses, National IDs)
+  2. *Vehicle & Transportation* (Registration Certificates, PUC, Vehicle Insurance, FASTag)
+  3. *Electricity & Household Bills* (Power, Water, Gas/LPG, Broadband, Utilities)
+  4. *Banking & Finance* (Credit Card Due Dates, Loan EMIs, Term Deposits, Mutual Fund SIPs)
+  5. *Medical & Healthcare* (Prescription Refills, Follow-ups, Vaccinations)
+  6. *Education & Student* (Tuition Fees, Exam Registration, Scholarships)
+  7. *Personal & Family* (Memberships, Streaming Subscriptions, Rent Agreements)
+  8. *Insurance* (Life, Health, Auto, Term Insurance Premiums)
+  9. *Government Schemes & Tax* (ITR Filing, Advance Tax, Property Tax, GST)
+  10. *Others* (General Deadlines, Custom Tasks)
+- **Multi-Format Date Extraction**: Detects `YYYY-MM-DD`, `DD-MM-YYYY`, `DD Month YYYY`, `Month DD YYYY`. Distinguishes expiry dates, renewal dates, payment deadlines, and issue dates.
+- **Verification Review Card**: Allows user to review detected information and candidate dates before saving.
+
+### 3. Automated Notifications & Scheduler Engine
+- **In-App Notifications**: Header bell icon with real-time unread counter badge, floating notification drawer with filter tabs (*All, Unread, Upcoming, Overdue*), and 1-click "Mark All Read".
+- **External Web Push & Background Alarms**: Registered Service Worker (`sw.js`) and Web Push API support for dispatching desktop/mobile notifications even when the application tab is closed.
+- **FCM Token Support**: Mobile push registration ready for native Android/iOS applications.
+- **Multi-Interval Alarms**: Default alert intervals at 30, 15, 7, 3, 2, 1 days before deadline and on deadline day (0d), plus custom day intervals.
+- **Deduplication Engine**: Background scheduler runs every 60 seconds and prevents duplicate alarms per interval cycle.
+
+### 4. Reminder Lifecycle Management
+- **Status Workflows**: Active, Completed, and Snoozed.
+- **Auto-Repeat Renewal**: Marking recurring reminders completed automatically advances the deadline to the next cycle (Daily, Weekly, Monthly, Quarterly, Half-Yearly, Yearly) and resets alert intervals.
+- **Quick Snooze**: Snooze presets for +1 hour, +1 day, +3 days, +1 week, or custom datetime.
+- **Interactive Monthly Calendar**: Full calendar view with urgency-coded reminder chips, date navigation, and day inspection drawer.
+- **Document Linking**: Connect reminders directly with AES-256-GCM encrypted vault documents via `documentId`.
+- **Configurable Limit**: Default limit of 300 active reminders per user, configurable in settings.
+
+### 5. Java Spring Boot & MySQL Reference Module
+Located in `backend-spring-boot/`:
+- `schema.sql`: Full DDL schema for MySQL 8.0+.
+- Entities: `Reminder.java`, `ReminderSettings.java`, `NotificationHistory.java`.
+- Repositories: `ReminderRepository.java`, `ReminderSettingsRepository.java`, `NotificationHistoryRepository.java`.
+- Services: `ReminderService.java`, `NotificationSchedulerService.java`.
+- Controller: `ReminderController.java` (`/api/reminders`).
+
+---
+
 ## 🧪 Automated Test Suites
 
 ### 1. Security & Storage Vault Tests
@@ -103,13 +152,26 @@ Validates 21 security assertions: AES-256-GCM vault encryption, IDOR user isolat
 ```bash
 node test_autofill.js
 ```
-Validates 19 functional and security assertions:
-- Unauthenticated access prevention (401)
-- Encrypted profile storage at rest (AES-256-GCM)
-- Cross-user IDOR isolation
-- "Full Name", "Parent/Guardian", "Email", "College", "Roll Number" semantic matching
-- Missing fields left blank without erroneous auto-population
-- Extension ZIP packaging and download
+Validates 19 functional and security assertions: profile encryption, semantic question matching, and browser extension packaging.
+
+### 3. Deadline & Expiry Intelligence Tests
+```bash
+node test_reminders.js
+```
+Validates 13 assertions:
+- Category & date extraction heuristics
+- Manual reminder creation without documents
+- Strict IDOR cross-user protection
+- 300 active reminder limit enforcement
+- Recurring reminder auto-repeat advancement
+- Snooze workflow and status transitions
+- In-app notification deduplication and mark-all-read
+
+### Run All Test Suites
+```bash
+npm test
+```
+All **53 automated assertions** execute and pass.
 
 ---
 
@@ -122,5 +184,7 @@ Open **`http://localhost:3000`** in any web browser.
 
 - **Document Scanner & Vault**: `http://localhost:3000` (Tab 1)
 - **AI AutoFill & Form Studio**: `http://localhost:3000` (Tab 2)
-- **Live Form Simulator & Extension Hub**: `http://localhost:3000` (Tab 3)
+- **Deadline & Expiry Intelligence**: `http://localhost:3000` (Tab 3)
+- **Live Form Simulator & Extension Hub**: `http://localhost:3000` (Tab 4)
+
 

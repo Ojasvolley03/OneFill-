@@ -123,14 +123,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function updateWatermark(user) {
     if (watermarkUserText) {
-      const email = user ? user.email : 'GUEST';
+      const email = (user && user.id !== 'usr_guest') ? user.email : 'GUEST SESSION (UNAUTHENTICATED)';
       watermarkUserText.textContent = `CONFIDENTIAL • OWNER: ${email} • ${new Date().toLocaleDateString()}`;
     }
   }
 
   function renderAuthNav() {
     userAuthWrap.innerHTML = '';
-    if (currentUser) {
+    const isNamedUser = currentUser && currentUser.id !== 'usr_guest';
+
+    if (isNamedUser) {
       userAuthWrap.innerHTML = `
         <div class="user-profile-badge" title="Authenticated account">
           <span class="user-avatar-dot"></span>
@@ -142,15 +144,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
       document.getElementById('btn-logout').addEventListener('click', async () => {
         await window.docStorage.logout();
-        currentUser = null;
+        currentUser = await window.docStorage.checkAuth();
         renderAuthNav();
-        updateWatermark(null);
-        showToast('Signed out successfully.', 'success');
+        updateWatermark(currentUser);
+        showToast('Signed out. Continuing in guest mode.', 'success');
         await refreshRepository();
       });
     } else {
       userAuthWrap.innerHTML = `
-        <button type="button" class="btn-secondary btn-auth-trigger" id="btn-open-auth">
+        <div class="user-profile-badge" style="background: rgba(46, 125, 50, 0.08); border-color: rgba(46, 125, 50, 0.25);" title="Smooth guest access - no login required">
+          <span class="user-avatar-dot" style="background: #2e7d32;"></span>
+          <span style="color: #2e7d32; font-weight: 600;">Guest Mode</span>
+        </div>
+        <button type="button" class="btn-secondary btn-auth-trigger" id="btn-open-auth" title="Sign in or register an account">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
@@ -158,7 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           Sign In / Register
         </button>
       `;
-      document.getElementById('btn-open-auth').addEventListener('click', () => {
+      document.getElementById('btn-open-auth')?.addEventListener('click', () => {
         openAuthModal('login');
       });
     }
@@ -326,12 +332,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // --------------------------------------------------------------------------
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    if (!currentUser) {
-      openAuthModal('login');
-      showToast('Authentication required: Sign in or register to store encrypted documents.', 'error');
-      return;
-    }
 
     if (!currentFile || !docTitleInput.value.trim()) {
       showToast('Please select a file and provide a title.', 'error');
@@ -504,26 +504,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderDocuments(docs) {
     documentsContainer.innerHTML = '';
-
-    if (!currentUser) {
-      documentsContainer.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-          </div>
-          <div class="empty-title">Vault Locked</div>
-          <div class="empty-desc">
-            Sign in or create an account to access your private encrypted document vault.
-          </div>
-          <button type="button" class="btn-primary" style="width: auto; margin: 16px auto 0;" id="btn-empty-signin">Sign In to View Vault</button>
-        </div>
-      `;
-      document.getElementById('btn-empty-signin')?.addEventListener('click', () => openAuthModal('login'));
-      return;
-    }
 
     if (docs.length === 0) {
       const isFiltered = searchQuery.trim().length > 0 || activeCategory !== 'ALL';
@@ -873,13 +853,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Re-authentication for Sensitive Action ("Clear All")
   // --------------------------------------------------------------------------
   btnClearAll.addEventListener('click', async () => {
-    if (!currentUser) {
-      openAuthModal('login');
-      return;
-    }
     const allDocs = await window.docStorage.getAllDocuments();
     if (allDocs.length === 0) {
       showToast('Your vault is already empty.', 'error');
+      return;
+    }
+
+    if (currentUser && currentUser.id === 'usr_guest') {
+      if (confirm('Clear all documents currently stored in your guest vault?')) {
+        try {
+          await window.docStorage.clearAll('');
+          showToast('Guest vault cleared.', 'success');
+          await refreshRepository();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
       return;
     }
 

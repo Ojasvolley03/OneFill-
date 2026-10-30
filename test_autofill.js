@@ -75,14 +75,14 @@ async function runAutoFillTests() {
   }
 
   try {
-    // 1. Unauthenticated access to /api/autofill/profile
+    // 1. Unauthenticated access to /api/autofill/profile (smooth guest access)
     const unauthRes = await request({
       hostname: 'localhost',
       port: 3000,
       path: '/api/autofill/profile',
       method: 'GET'
     });
-    assert('T1.1: Unauthenticated request to /api/autofill/profile is blocked (401)', unauthRes.statusCode === 401);
+    assert('T1.1: Unauthenticated request to /api/autofill/profile smoothly returns guest profile (200)', unauthRes.statusCode === 200);
 
     // 2. Public schema descriptor
     const schemaRes = await request({
