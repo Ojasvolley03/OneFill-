@@ -321,13 +321,38 @@
   // --------------------------------------------------------------------------
   // Data Fetching & Sync
   // --------------------------------------------------------------------------
+  let reminderSessionPromise;
+
+  function ensureReminderSession() {
+    if (!reminderSessionPromise) {
+      reminderSessionPromise = fetch('/api/reminders/session', { method: 'POST' })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Reminder session initialization failed (${res.status}).`);
+          }
+          return res.json();
+        })
+        .catch((err) => {
+          reminderSessionPromise = null;
+          throw err;
+        });
+    }
+
+    return reminderSessionPromise;
+  }
+
+  async function reminderFetch(...args) {
+    await ensureReminderSession();
+    return fetch(...args);
+  }
+
   async function refreshAllData() {
     await Promise.all([fetchReminders(), fetchNotifications()]);
   }
 
   async function fetchReminders() {
     try {
-      const res = await fetch('/api/reminders?status=all');
+      const res = await reminderFetch('/api/reminders?status=all');
       if (res.status === 401) {
         // Not authenticated
         currentReminders = [];
@@ -879,14 +904,14 @@
       let res;
       if (id) {
         // Update
-        res = await fetch(`/api/reminders/${id}`, {
+        res = await reminderFetch(`/api/reminders/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       } else {
         // Create
-        res = await fetch('/api/reminders', {
+        res = await reminderFetch('/api/reminders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1178,7 +1203,7 @@
   // --------------------------------------------------------------------------
   async function toggleReminderStatus(id, newStatus) {
     try {
-      const res = await fetch(`/api/reminders/${id}/status`, {
+      const res = await reminderFetch(`/api/reminders/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -1213,7 +1238,7 @@
     if (!targetId) return;
 
     try {
-      const res = await fetch(`/api/reminders/${targetId}/snooze`, {
+      const res = await reminderFetch(`/api/reminders/${targetId}/snooze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hours })
@@ -1238,7 +1263,7 @@
     }
 
     try {
-      const res = await fetch(`/api/reminders/${targetId}/snooze`, {
+      const res = await reminderFetch(`/api/reminders/${targetId}/snooze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ snoozeUntil: new Date(customTime).toISOString() })
@@ -1257,7 +1282,7 @@
   async function confirmDeleteReminder(id, title) {
     if (confirm(`Are you sure you want to delete the reminder "${title}"?`)) {
       try {
-        const res = await fetch(`/api/reminders/${id}`, { method: 'DELETE' });
+        const res = await reminderFetch(`/api/reminders/${id}`, { method: 'DELETE' });
         if (res.ok) {
           showToast('Reminder deleted successfully.', 'success');
           await refreshAllData();
@@ -1316,7 +1341,7 @@
   // --------------------------------------------------------------------------
   async function fetchNotifications() {
     try {
-      const res = await fetch('/api/reminders/notifications');
+      const res = await reminderFetch('/api/reminders/notifications');
       if (res.status === 401) {
         currentNotifications = [];
         updateNotificationBellBadge(0);
@@ -1426,14 +1451,14 @@
 
   async function markSingleNotificationRead(notifId) {
     try {
-      await fetch(`/api/reminders/notifications/${notifId}/read`, { method: 'PATCH' });
+      await reminderFetch(`/api/reminders/notifications/${notifId}/read`, { method: 'PATCH' });
       await fetchNotifications();
     } catch (e) {}
   }
 
   async function markAllNotificationsRead() {
     try {
-      await fetch('/api/reminders/notifications/read-all', { method: 'POST' });
+      await reminderFetch('/api/reminders/notifications/read-all', { method: 'POST' });
       await fetchNotifications();
       showToast('All notifications marked as read.', 'success');
     } catch (e) {}
@@ -1441,14 +1466,14 @@
 
   async function deleteSingleNotification(notifId) {
     try {
-      await fetch(`/api/reminders/notifications/${notifId}`, { method: 'DELETE' });
+      await reminderFetch(`/api/reminders/notifications/${notifId}`, { method: 'DELETE' });
       await fetchNotifications();
     } catch (e) {}
   }
 
   async function triggerBackendSchedulerCheck() {
     try {
-      await fetch('/api/reminders/trigger-check', { method: 'POST' });
+      await reminderFetch('/api/reminders/trigger-check', { method: 'POST' });
     } catch (e) {}
   }
 
@@ -1476,7 +1501,7 @@
     }
 
     try {
-      const res = await fetch('/api/reminders/settings');
+      const res = await reminderFetch('/api/reminders/settings');
       if (res.ok) {
         const data = await res.json();
         const settings = data.settings || {};
@@ -1509,7 +1534,7 @@
     };
 
     try {
-      const res = await fetch('/api/reminders/settings', {
+      const res = await reminderFetch('/api/reminders/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1550,7 +1575,7 @@
             keys: { p256dh: 'mock-key', auth: 'mock-auth' }
           };
 
-          await fetch('/api/reminders/push-subscription', {
+          await reminderFetch('/api/reminders/push-subscription', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sub)
@@ -1573,7 +1598,7 @@
     }
 
     try {
-      const res = await fetch('/api/reminders/fcm-token', {
+      const res = await reminderFetch('/api/reminders/fcm-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })

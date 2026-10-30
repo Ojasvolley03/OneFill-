@@ -145,6 +145,20 @@ function resolveAuth(req) {
   return { user: db.GUEST_USER, token: 'guest_session', isGuest: true };
 }
 
+function resolveReminderAuth(req) {
+  const auth = resolveAuth(req);
+  if (!auth || auth.user.id !== db.GUEST_USER.id) return auth;
+
+  const guestToken = parseCookies(req).onefill_reminder_guest;
+  if (!guestToken) return null;
+
+  const userId = db.validateSession(guestToken);
+  const user = userId && db.getUserById(userId);
+  if (!user || user.id === db.GUEST_USER.id) return null;
+
+  return { user, token: guestToken, isGuest: true };
+}
+
 // Send JSON response
 function sendJson(res, statusCode, data, extraHeaders = {}) {
   applySecurityHeaders(res);
@@ -524,7 +538,22 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, { categories: db.REMINDER_CATEGORIES });
       }
 
-      const auth = resolveAuth(req);
+      if (pathname === '/api/reminders/session' && method === 'POST') {
+        const auth = resolveReminderAuth(req);
+        if (auth) {
+          return sendJson(res, 200, { isGuest: auth.isGuest });
+        }
+
+        if (!resolveAuth(req) || parseCookies(req).onefill_reminder_guest) {
+          return sendJson(res, 401, { error: 'Unauthorized: Unable to initialize reminder session.' });
+        }
+
+        const guestSession = db.createGuestSession();
+        const cookieVal = `onefill_reminder_guest=${guestSession.token}; HttpOnly; SameSite=Strict; Path=/api/reminders; Max-Age=7200`;
+        return sendJson(res, 200, { isGuest: true }, { 'Set-Cookie': cookieVal });
+      }
+
+      const auth = resolveReminderAuth(req);
       if (!auth) {
         return sendJson(res, 401, { error: 'Unauthorized: Authentication required to access reminders.' });
       }

@@ -130,7 +130,7 @@ async function runReminderTests() {
     assert.ok(catRes.json.categories.includes('Government & Identity'));
   });
 
-  // Unauthenticated access provides guest access smoothly
+  // Reminder data requires a per-browser guest session.
   const unauthRes = await request({
     hostname: 'localhost',
     port: 3000,
@@ -138,9 +138,65 @@ async function runReminderTests() {
     method: 'GET'
   });
 
-  test('Unauthenticated access to /api/reminders smoothly returns guest reminders (200)', () => {
-    assert.strictEqual(unauthRes.statusCode, 200);
-    assert.ok(Array.isArray(unauthRes.json.reminders));
+  test('Reminder data is unavailable until a private guest session is initialized', () => {
+    assert.strictEqual(unauthRes.statusCode, 401);
+  });
+
+  const guestSessionA = await request({
+    hostname: 'localhost',
+    port: 3000,
+    path: '/api/reminders/session',
+    method: 'POST'
+  });
+  const guestCookieA = getCookie(guestSessionA.headers);
+
+  const guestSessionB = await request({
+    hostname: 'localhost',
+    port: 3000,
+    path: '/api/reminders/session',
+    method: 'POST'
+  });
+  const guestCookieB = getCookie(guestSessionB.headers);
+
+  test('Each unauthenticated browser receives a separate reminder session', () => {
+    assert.strictEqual(guestSessionA.statusCode, 200);
+    assert.strictEqual(guestSessionB.statusCode, 200);
+    assert.ok(guestCookieA && guestCookieA.startsWith('onefill_reminder_guest='));
+    assert.ok(guestCookieB && guestCookieB.startsWith('onefill_reminder_guest='));
+    assert.notStrictEqual(guestCookieA, guestCookieB);
+  });
+
+  const guestReminderRes = await request(
+    {
+      hostname: 'localhost',
+      port: 3000,
+      path: '/api/reminders',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: guestCookieA }
+    },
+    {
+      title: `Private Guest Reminder ${Date.now()}`,
+      category: 'Others',
+      deadlineDate: '2099-12-31',
+      notes: 'Must not be visible to a different guest.'
+    }
+  );
+
+  const otherGuestReminders = await request({
+    hostname: 'localhost',
+    port: 3000,
+    path: '/api/reminders',
+    method: 'GET',
+    headers: { Cookie: guestCookieB }
+  });
+
+  test('Reminder data created by one guest is not visible to another guest', () => {
+    assert.strictEqual(guestReminderRes.statusCode, 201);
+    assert.strictEqual(otherGuestReminders.statusCode, 200);
+    assert.ok(Array.isArray(otherGuestReminders.json.reminders));
+    assert.ok(!otherGuestReminders.json.reminders.some((reminder) => (
+      reminder.id === guestReminderRes.json.reminder.id
+    )));
   });
 
   // Register User Alice

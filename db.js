@@ -195,6 +195,9 @@ const GUEST_USER = {
 
 function getUserById(userId) {
   if (userId === GUEST_USER.id) return GUEST_USER;
+  if (typeof userId === 'string' && userId.startsWith('usr_guest_')) {
+    return { ...GUEST_USER, id: userId };
+  }
   const user = users.find((u) => u.id === userId);
   if (!user) return null;
   return { id: user.id, email: user.email, username: user.username, createdAt: user.createdAt };
@@ -221,6 +224,16 @@ function createSession(userId) {
 
   saveSessions();
   return { token, expiresAt };
+}
+
+function createGuestSession() {
+  const userId = `usr_guest_${security.generateSessionToken()}`;
+  const { token, expiresAt } = createSession(userId);
+  return {
+    user: getUserById(userId),
+    token,
+    expiresAt
+  };
 }
 
 function validateSession(token) {
@@ -1227,6 +1240,7 @@ module.exports = {
   authenticateUser,
   getUserById,
   createSession,
+  createGuestSession,
   validateSession,
   destroySession,
   saveDocumentRecord,
@@ -1264,4 +1278,3 @@ module.exports = {
   deleteNotification,
   checkDueRemindersAndGenerateNotifications
 };
-
