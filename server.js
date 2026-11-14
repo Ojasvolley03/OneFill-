@@ -30,8 +30,8 @@ function triggerNotificationCheck() {
   }
 }
 
-// Run scheduler every 60 seconds
-const SCHEDULER_INTERVAL_MS = 60 * 1000;
+// Run scheduler every 15 seconds for accurate exact-time alerts
+const SCHEDULER_INTERVAL_MS = 15 * 1000;
 setInterval(triggerNotificationCheck, SCHEDULER_INTERVAL_MS);
 // Run initial check after 2 seconds
 setTimeout(triggerNotificationCheck, 2000);
@@ -68,12 +68,11 @@ function applyCorsHeaders(req, res) {
 // Security Headers applied to every response
 function applySecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; worker-src 'self' blob: https://cdnjs.cloudflare.com; connect-src 'self' blob: data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
+    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; worker-src 'self' blob: https://cdnjs.cloudflare.com; connect-src 'self' blob: data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
   );
 }
 
@@ -385,7 +384,9 @@ const server = http.createServer(async (req, res) => {
       if (pathname === '/api/documents' && method === 'POST') {
         let bodyBuf;
         try {
-          bodyBuf = await readRequestBody(req, security.MAX_FILE_SIZE);
+          // Base64 expands binary payloads ~1.37x plus metadata/thumbnail
+          const maxJsonEnvelopeBytes = Math.ceil(security.MAX_FILE_SIZE * 1.45) + 2 * 1024 * 1024;
+          bodyBuf = await readRequestBody(req, maxJsonEnvelopeBytes);
         } catch (e) {
           if (e.message === 'PAYLOAD_TOO_LARGE') {
             return sendJson(res, 413, { error: 'File upload exceeds the 50MB security limit.' });
@@ -550,7 +551,7 @@ const server = http.createServer(async (req, res) => {
 
         const guestSession = db.createGuestSession();
         const cookieVal = `onefill_reminder_guest=${guestSession.token}; HttpOnly; SameSite=Strict; Path=/api/reminders; Max-Age=7200`;
-        return sendJson(res, 200, { isGuest: true }, { 'Set-Cookie': cookieVal });
+        return sendJson(res, 200, { isGuest: true, token: guestSession.token }, { 'Set-Cookie': cookieVal });
       }
 
       const auth = resolveReminderAuth(req);
@@ -829,10 +830,15 @@ const server = http.createServer(async (req, res) => {
         const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
         applySecurityHeaders(res);
-        res.writeHead(200, {
+        const extraHeaders = {
           'Content-Type': contentType,
           'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
-        });
+        };
+        if (reqPath === '/onefill-updated.zip') {
+          extraHeaders['Content-Disposition'] = 'attachment; filename="onefill-updated.zip"';
+          extraHeaders['Content-Length'] = stats.size;
+        }
+        res.writeHead(200, extraHeaders);
 
         if (method === 'HEAD') {
           res.end();
@@ -854,7 +860,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`OneFill Secure Server running at http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`OneFill Secure Server running at http://0.0.0.0:${PORT}`);
   console.log(`Private encrypted vault located at: ${security.VAULT_DIR}`);
 });

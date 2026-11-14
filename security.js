@@ -196,6 +196,32 @@ function validateFileSignature(filename, buffer) {
     return { valid: true, mime: 'image/jpeg' };
   }
 
+  if (ext === '.webp') {
+    if (
+      buffer.length < 12 ||
+      buffer.slice(0, 4).toString('ascii') !== 'RIFF' ||
+      buffer.slice(8, 12).toString('ascii') !== 'WEBP'
+    ) {
+      return { valid: false, reason: 'Invalid WEBP signature: Corrupted or spoofed image.' };
+    }
+    return { valid: true, mime: 'image/webp' };
+  }
+
+  if (ext === '.gif') {
+    const header = buffer.slice(0, 6).toString('ascii');
+    if (buffer.length < 6 || (header !== 'GIF87a' && header !== 'GIF89a')) {
+      return { valid: false, reason: 'Invalid GIF signature: Corrupted or spoofed image.' };
+    }
+    return { valid: true, mime: 'image/gif' };
+  }
+
+  if (ext === '.bmp') {
+    if (buffer.length < 2 || buffer[0] !== 0x42 || buffer[1] !== 0x4D) {
+      return { valid: false, reason: 'Invalid BMP signature: Corrupted or spoofed image.' };
+    }
+    return { valid: true, mime: 'image/bmp' };
+  }
+
   if (ext === '.docx' || ext === '.xlsx') {
     // ZIP header for OpenXML formats: PK\x03\x04 (0x50 0x4B 0x03 0x04)
     if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4B || buffer[2] !== 0x03 || buffer[3] !== 0x04) {
@@ -204,7 +230,17 @@ function validateFileSignature(filename, buffer) {
     return { valid: true, mime: ext === '.docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
   }
 
-  if (['.txt', '.csv', '.json', '.md'].includes(ext)) {
+  if (ext === '.doc' || ext === '.xls') {
+    const isOle2 = buffer.length >= 4 && buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0;
+    const isRtf = buffer.length >= 5 && buffer.slice(0, 5).toString('ascii') === '{\\rtf';
+    const isXmlOrHtml = buffer.slice(0, 64).toString('utf8').trimStart().startsWith('<');
+    if (!isOle2 && !isRtf && !isXmlOrHtml) {
+      return { valid: false, reason: 'Invalid legacy Office document signature.' };
+    }
+    return { valid: true, mime: ext === '.doc' ? 'application/msword' : 'application/vnd.ms-excel' };
+  }
+
+  if (['.txt', '.csv', '.json', '.md', '.log', '.xml', '.html', '.htm', '.rtf'].includes(ext)) {
     // Text formats: check for excessive null bytes or binary control characters
     const sample = buffer.slice(0, Math.min(buffer.length, 1024));
     let binaryCount = 0;
@@ -216,7 +252,16 @@ function validateFileSignature(filename, buffer) {
     if (binaryCount > 10) {
       return { valid: false, reason: 'Text file contains non-printable binary characters.' };
     }
-    return { valid: true, mime: ext === '.json' ? 'application/json' : ext === '.csv' ? 'text/csv' : 'text/plain' };
+    const mimeMap = {
+      '.json': 'application/json',
+      '.csv': 'text/csv',
+      '.html': 'text/html',
+      '.htm': 'text/html',
+      '.xml': 'application/xml',
+      '.rtf': 'application/rtf',
+      '.md': 'text/markdown'
+    };
+    return { valid: true, mime: mimeMap[ext] || 'text/plain' };
   }
 
   // Other supported extensions fallback

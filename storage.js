@@ -198,7 +198,10 @@ class DocumentStorage {
 
     const blob = await res.blob();
     const sha256 = res.headers.get('X-Document-SHA256');
-    return { blob, sha256 };
+    const disp = res.headers.get('Content-Disposition') || '';
+    const match = disp.match(/filename\*?=(?:UTF-8'')?"?([^";\r\n]+)"?/i);
+    const filename = match ? decodeURIComponent(match[1]) : null;
+    return { blob, sha256, filename };
   }
 
   async clearAll(password) {

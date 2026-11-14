@@ -61,11 +61,53 @@ class DocumentExtractor {
   }
 
   /**
+   * Generate a persistent resized JPEG data URL thumbnail for image files
+   */
+  static createImageThumbnail(file, maxDimension = 420) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+            if (!width || !height) {
+              resolve(dataUrl);
+              return;
+            }
+            if (width > maxDimension || height > maxDimension) {
+              const scale = Math.min(maxDimension / width, maxDimension / height);
+              width = Math.max(1, Math.round(width * scale));
+              height = Math.max(1, Math.round(height * scale));
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
+          } catch (e) {
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = () => resolve(typeof dataUrl === 'string' ? dataUrl : null);
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
    * Run OCR on image using Tesseract.js
    */
   static async extractFromImage(file, onProgress) {
     onProgress('Initializing OCR engine...', 15);
-    const thumbnail = URL.createObjectURL(file);
+    const thumbnail = await this.createImageThumbnail(file);
 
     if (typeof Tesseract === 'undefined') {
       onProgress('OCR library offline; analyzing image metadata...', 80);
@@ -199,7 +241,10 @@ class DocumentExtractor {
       const xmlString = await docXmlFile.async('string');
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
-      const textNodes = xmlDoc.getElementsByTagName('w:t');
+      let textNodes = xmlDoc.getElementsByTagName('w:t');
+      if (!textNodes || textNodes.length === 0) {
+        textNodes = xmlDoc.getElementsByTagNameNS('*', 't');
+      }
 
       let extractedText = '';
       for (let i = 0; i < textNodes.length; i++) {
@@ -229,10 +274,19 @@ class DocumentExtractor {
    */
   static async extractFromText(file, onProgress) {
     onProgress('Reading plain text file...', 50);
-    const text = await file.text();
+    let text = await file.text();
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith('.html') || lowerName.endsWith('.htm') || lowerName.endsWith('.xml')) {
+      text = text.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ');
+    } else if (lowerName.endsWith('.rtf')) {
+      text = text.replace(/\\[a-z]+\d*\s?/gi, ' ').replace(/[{}]/g, ' ').replace(/\s+/g, ' ');
+    }
     onProgress('Text extraction complete.', 90);
     return {
-      text: text.trim(),
+      text: text.trim() || file.name.replace(/[-_.]/g, ' '),
       thumbnail: null,
       pageCount: 1,
       method: 'Text Stream'

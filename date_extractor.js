@@ -193,9 +193,9 @@
       // Regex patterns for various date representations
       const patterns = [
         // ISO YYYY-MM-DD or YYYY/MM/DD
-        { regex: /\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/g, format: 'YYYY-MM-DD' },
-        // DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
-        { regex: /\b(0[1-9]|[12]\d|3[01])[-/.](0[1-9]|1[0-2])[-/.](20\d{2})\b/g, format: 'DD-MM-YYYY' },
+        { regex: /\b(20\d{2})[-/.](1[0-2]|0?[1-9])[-/.]([12]\d|3[01]|0?[1-9])\b/g, format: 'YYYY-MM-DD' },
+        // DD-MM-YYYY or MM-DD-YYYY
+        { regex: /\b([12]\d|3[01]|0?[1-9])[-/.]([12]\d|3[01]|0?[1-9])[-/.](20\d{2})\b/g, format: 'DMY_OR_MDY' },
         // DD Month YYYY (e.g. 15 Nov 2026, 15 November 2026)
         { regex: /\b(0?[1-9]|[12]\d|3[01])\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)[,\s]+(20\d{2})\b/gi, format: 'DD Month YYYY' },
         // Month DD, YYYY (e.g. Nov 15, 2026, November 15, 2026)
@@ -269,10 +269,17 @@
           year = parseInt(match[1], 10);
           month = parseInt(match[2], 10);
           day = parseInt(match[3], 10);
-        } else if (format === 'DD-MM-YYYY') {
-          day = parseInt(match[1], 10);
-          month = parseInt(match[2], 10);
+        } else if (format === 'DMY_OR_MDY') {
+          const first = parseInt(match[1], 10);
+          const second = parseInt(match[2], 10);
           year = parseInt(match[3], 10);
+          if (second > 12 && first <= 12) {
+            month = first;
+            day = second;
+          } else {
+            day = first;
+            month = second;
+          }
         } else if (format === 'DD Month YYYY') {
           day = parseInt(match[1], 10);
           month = MONTHS_MAP[match[2].toLowerCase().slice(0, 3)];
@@ -286,6 +293,12 @@
         if (!year || !month || !day) return null;
         if (month < 1 || month > 12 || day < 1 || day > 31) return null;
         if (year < 2000 || year > 2060) return null;
+
+        // Validate real calendar date (prevents e.g. Feb 30)
+        const check = new Date(year, month - 1, day);
+        if (check.getFullYear() !== year || check.getMonth() !== month - 1 || check.getDate() !== day) {
+          return null;
+        }
 
         const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         return { isoDate, year, month, day };

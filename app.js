@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderAuthNav();
         updateWatermark(currentUser);
         showToast('Signed out. Continuing in guest mode.', 'success');
+        window.dispatchEvent(new CustomEvent('onefill:auth-changed', { detail: { user: currentUser } }));
         await refreshRepository();
       });
     } else {
@@ -235,6 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderAuthNav();
       updateWatermark(currentUser);
       closeAuthModal();
+      window.dispatchEvent(new CustomEvent('onefill:auth-changed', { detail: { user: currentUser } }));
       await refreshRepository();
     } catch (err) {
       authErrorBanner.textContent = err.message || 'Authentication error.';
@@ -398,6 +400,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       displayScanResults(savedDoc, classification);
       showToast(`"${savedDoc.title}" encrypted and stored in your private vault!`, 'success');
+      window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
       await refreshRepository();
     } catch (err) {
       console.error('Scanning/Storage error:', err);
@@ -411,7 +414,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     scanPreviewContent.innerHTML = '';
     if (file.type.startsWith('image/')) {
       const imgUrl = URL.createObjectURL(file);
-      scanPreviewContent.innerHTML = `<img src="${imgUrl}" class="scan-preview-img" alt="${escapeHtml(file.name)}">`;
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      img.className = 'scan-preview-img';
+      img.alt = file.name || 'Scanned image';
+      img.onload = () => URL.revokeObjectURL(imgUrl);
+      img.onerror = () => URL.revokeObjectURL(imgUrl);
+      scanPreviewContent.appendChild(img);
     } else {
       const extInfo = getFileTypeInfo(file.name, file.type);
       scanPreviewContent.innerHTML = `
@@ -466,6 +475,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentlyProcessedDocId) {
       await window.docStorage.updateDocumentCategory(currentlyProcessedDocId, newCat);
       showToast(`Category updated to "${newCat}"`, 'success');
+      window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
       await refreshRepository();
     }
   });
@@ -593,7 +603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               </svg>
               View
             </button>
-            <button type="button" class="card-action-btn btn-download" data-id="${doc.id}">
+            <button type="button" class="card-action-btn btn-download" data-id="${doc.id}" data-name="${escapeHtml(doc.name)}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="7 10 12 15 17 10"></polyline>
@@ -660,7 +670,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td>
             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
               <button type="button" class="card-action-btn btn-inspect" data-id="${doc.id}">View</button>
-              <button type="button" class="card-action-btn btn-download" data-id="${doc.id}">Download</button>
+              <button type="button" class="card-action-btn btn-download" data-id="${doc.id}" data-name="${escapeHtml(doc.name)}">Download</button>
               <button type="button" class="card-action-btn btn-delete" data-id="${doc.id}" title="Delete">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -691,6 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
           await window.docStorage.updateDocumentCategory(id, newCat);
           showToast(`Category updated to "${newCat}"`, 'success');
+          window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
           await refreshRepository();
         } catch (err) {
           showToast(err.message, 'error');
@@ -708,7 +719,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.btn-download').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
-        await triggerDownload(id);
+        const fallbackName = btn.getAttribute('data-name');
+        await triggerDownload(id, fallbackName);
       });
     });
 
@@ -719,6 +731,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           try {
             await window.docStorage.deleteDocument(id);
             showToast('Document permanently deleted from vault.', 'success');
+            window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
             await refreshRepository();
           } catch (err) {
             showToast(err.message, 'error');
@@ -802,6 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const newCat = e.target.value;
       await window.docStorage.updateDocumentCategory(doc.id, newCat);
       showToast(`Category updated to "${newCat}"`, 'success');
+      window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
       await refreshRepository();
     });
 
@@ -828,17 +842,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   modalDownloadAction.addEventListener('click', () => {
-    if (currentModalDoc) triggerDownload(currentModalDoc.id);
+    if (currentModalDoc) triggerDownload(currentModalDoc.id, currentModalDoc.name);
   });
 
-  async function triggerDownload(docId) {
+  async function triggerDownload(docId, fallbackName = null) {
     try {
-      showToast('Verifying SHA-256 integrity & decrypting...', 'success');
-      const { blob } = await window.docStorage.downloadDocument(docId);
+      showToast('Verifying SHA-256 integrity & decrypting...', 'info');
+      const { blob, filename } = await window.docStorage.downloadDocument(docId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = currentModalDoc?.name || 'document';
+      a.download = filename || fallbackName || currentModalDoc?.name || 'document';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -864,6 +878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
           await window.docStorage.clearAll('');
           showToast('Guest vault cleared.', 'success');
+          window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
           await refreshRepository();
         } catch (err) {
           showToast(err.message, 'error');
@@ -902,6 +917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await window.docStorage.clearAll(password);
       closeReauthModal();
       showToast('All your documents have been securely purged.', 'success');
+      window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'app' } }));
       await refreshRepository();
     } catch (err) {
       reauthError.textContent = err.message || 'Incorrect password.';
@@ -999,10 +1015,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    
-    const icon = type === 'success' 
-      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`
-      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+
+    let icon;
+    if (type === 'success') {
+      icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    } else if (type === 'info' || type === 'warning') {
+      const stroke = type === 'warning' ? '#D97706' : '#4F46E5';
+      icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+    } else {
+      icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+    }
 
     toast.innerHTML = `${icon}<span>${escapeHtml(message)}</span>`;
     toastContainer.appendChild(toast);
@@ -1012,8 +1034,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       toast.style.transform = 'translateY(10px)';
       toast.style.transition = 'all 0.25s ease-out';
       setTimeout(() => toast.remove(), 250);
-    }, 3200);
+    }, 3400);
   }
+
+  window.showToast = showToast;
+  window.openDocumentInspectModal = openInspectModal;
+
+  window.addEventListener('onefill:documents-changed', (e) => {
+    if (e.detail?.source !== 'app') {
+      refreshRepository();
+    }
+  });
 
   // Start Auth Check on load
   await initAuth();

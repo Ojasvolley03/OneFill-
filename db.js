@@ -633,6 +633,35 @@ function calculateDaysRemaining(deadlineDateStr) {
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
 
+function normalizeDeadlineTime(timeStr) {
+  const raw = timeStr ? String(timeStr).trim() : '';
+  if (/^\d{2}:\d{2}$/.test(raw)) {
+    const [hh, mm] = raw.split(':').map(Number);
+    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+      return raw;
+    }
+  }
+  return '09:00';
+}
+
+function resolveDeadlineTimestamp(deadlineDateStr, deadlineTimeStr, providedTimestamp) {
+  if (providedTimestamp) {
+    const parsed = new Date(providedTimestamp);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+  if (!deadlineDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(deadlineDateStr)) {
+    return null;
+  }
+  const timePart = normalizeDeadlineTime(deadlineTimeStr);
+  const localOrServerDt = new Date(`${deadlineDateStr}T${timePart}:00`);
+  if (!isNaN(localOrServerDt.getTime())) {
+    return localOrServerDt.toISOString();
+  }
+  return null;
+}
+
 function computeNextRepeatDate(currentDateStr, repeatOption) {
   if (!currentDateStr || !repeatOption || repeatOption === 'none') return null;
   const [year, month, day] = currentDateStr.split('-').map(Number);
@@ -778,6 +807,9 @@ function createReminder(userId, data) {
     }
   }
 
+  const deadlineTime = normalizeDeadlineTime(data.deadlineTime);
+  const deadlineTimestamp = resolveDeadlineTimestamp(deadlineDate, deadlineTime, data.deadlineTimestamp);
+
   const reminder = {
     id: 'rem_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
     userId,
@@ -785,7 +817,8 @@ function createReminder(userId, data) {
     category,
     documentId,
     deadlineDate,
-    deadlineTime: data.deadlineTime ? String(data.deadlineTime).trim().slice(0, 10) : '09:00',
+    deadlineTime,
+    deadlineTimestamp,
     amount: data.amount ? String(data.amount).trim().slice(0, 50) : null,
     intervals,
     repeatOption: ['none', 'daily', 'weekly', 'monthly', 'quarterly', 'half-yearly', 'yearly'].includes(String(data.repeatOption).toLowerCase())
@@ -906,6 +939,7 @@ function updateUserReminder(userId, reminderId, patch) {
     reminder.category = patch.category;
   }
 
+  let timingChanged = false;
   if (patch.deadlineDate !== undefined) {
     const d = String(patch.deadlineDate).trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
@@ -915,6 +949,7 @@ function updateUserReminder(userId, reminderId, patch) {
     if (reminder.deadlineDate !== d) {
       reminder.deadlineDate = d;
       reminder.lastNotifiedIntervals = [];
+      timingChanged = true;
       if (reminder.status === 'completed') {
         reminder.status = 'active';
         reminder.completedAt = null;
@@ -923,7 +958,29 @@ function updateUserReminder(userId, reminderId, patch) {
   }
 
   if (patch.deadlineTime !== undefined) {
-    reminder.deadlineTime = patch.deadlineTime ? String(patch.deadlineTime).trim().slice(0, 10) : '09:00';
+    const nextTime = normalizeDeadlineTime(patch.deadlineTime);
+    if (reminder.deadlineTime !== nextTime) {
+      reminder.deadlineTime = nextTime;
+      timingChanged = true;
+    }
+  }
+
+  if (timingChanged || patch.deadlineTimestamp !== undefined) {
+    const nextTimestamp = resolveDeadlineTimestamp(
+      reminder.deadlineDate,
+      reminder.deadlineTime,
+      patch.deadlineTimestamp
+    );
+    if (reminder.deadlineTimestamp !== nextTimestamp) {
+      reminder.deadlineTimestamp = nextTimestamp;
+      timingChanged = true;
+    }
+  }
+
+  if (timingChanged && Array.isArray(reminder.lastNotifiedIntervals)) {
+    reminder.lastNotifiedIntervals = reminder.lastNotifiedIntervals.filter(
+      (k) => k !== 'exact_time' && k !== 'overdue'
+    );
   }
 
   if (patch.amount !== undefined) {
@@ -974,6 +1031,7 @@ function setUserReminderStatus(userId, reminderId, status) {
       const nextDate = computeNextRepeatDate(reminder.deadlineDate, reminder.repeatOption);
       if (nextDate) {
         reminder.deadlineDate = nextDate;
+        reminder.deadlineTimestamp = resolveDeadlineTimestamp(nextDate, reminder.deadlineTime, null);
         reminder.status = 'active';
         reminder.completedAt = null;
         reminder.lastNotifiedIntervals = [];
@@ -1140,6 +1198,25 @@ function checkDueRemindersAndGenerateNotifications(onPushTrigger = null) {
         reminder.snoozedUntil = null;
         reminder.updatedAt = now.toISOString();
         changed = true;
+
+        if (reminder.notificationsEnabled) {
+          const snoozeEndNotif = createNotification(reminder.userId, {
+            reminderId: reminder.id,
+            reminderTitle: reminder.title,
+            reminderCategory: reminder.category,
+            type: 'due_today',
+            intervalDays: calculateDaysRemaining(reminder.deadlineDate),
+            title: `⏰ Snooze Ended: ${reminder.title}`,
+            message: `Your snoozed reminder "${reminder.title}" (${reminder.deadlineDate} at ${reminder.deadlineTime || '09:00'}) is active again.`
+          });
+          if (onPushTrigger && reminder.pushEnabled) {
+            try {
+              onPushTrigger({ userId: reminder.userId, reminder, notification: snoozeEndNotif });
+            } catch (err) {
+              console.warn('Push trigger notification error:', err.message);
+            }
+          }
+        }
       } else {
         // Still actively snoozed, skip alerts
         continue;
@@ -1153,6 +1230,38 @@ function checkDueRemindersAndGenerateNotifications(onPushTrigger = null) {
     const intervals = reminder.intervals || DEFAULT_REMINDER_INTERVALS;
     if (!Array.isArray(reminder.lastNotifiedIntervals)) {
       reminder.lastNotifiedIntervals = [];
+    }
+
+    // Exact scheduled date+time trigger
+    const targetIso = reminder.deadlineTimestamp || resolveDeadlineTimestamp(reminder.deadlineDate, reminder.deadlineTime, null);
+    if (targetIso) {
+      const targetMs = new Date(targetIso).getTime();
+      if (!isNaN(targetMs) && now.getTime() >= targetMs && !reminder.lastNotifiedIntervals.includes('exact_time')) {
+        reminder.lastNotifiedIntervals.push('exact_time');
+        changed = true;
+
+        const exactNotif = createNotification(reminder.userId, {
+          reminderId: reminder.id,
+          reminderTitle: reminder.title,
+          reminderCategory: reminder.category,
+          type: 'due_today',
+          intervalDays: daysRemaining,
+          title: `⏰ Reminder Due Now: ${reminder.title}`,
+          message: `Scheduled reminder "${reminder.title}" (${reminder.deadlineDate} at ${reminder.deadlineTime || '09:00'}) has reached its due time!` + (reminder.amount ? ` Amount: ${reminder.amount}` : '')
+        });
+
+        if (onPushTrigger && reminder.pushEnabled) {
+          try {
+            onPushTrigger({
+              userId: reminder.userId,
+              reminder,
+              notification: exactNotif
+            });
+          } catch (err) {
+            console.warn('Push trigger notification error:', err.message);
+          }
+        }
+      }
     }
 
     // Interval checks: e.g. 30, 15, 7, 3, 2, 1, 0 days remaining
@@ -1169,7 +1278,7 @@ function checkDueRemindersAndGenerateNotifications(onPushTrigger = null) {
             : `⏰ ${interval} Day${interval > 1 ? 's' : ''} Remaining: ${reminder.title}`;
 
           const notifMsg = isToday
-            ? `Your deadline for "${reminder.title}" (${reminder.category}) is TODAY (${reminder.deadlineDate}).` + (reminder.amount ? ` Amount due: ${reminder.amount}` : '')
+            ? `Your deadline for "${reminder.title}" (${reminder.category}) is TODAY (${reminder.deadlineDate} at ${reminder.deadlineTime || '09:00'}).` + (reminder.amount ? ` Amount due: ${reminder.amount}` : '')
             : `"${reminder.title}" is due in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} on ${reminder.deadlineDate}.` + (reminder.amount ? ` Amount: ${reminder.amount}` : '');
 
           const notif = createNotification(reminder.userId, {

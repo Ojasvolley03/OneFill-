@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const input = card.querySelector('.studio-field-input');
           const val = input.value.trim();
           if (!val) {
-            alert('Please enter a value before saving.');
+            showToast('Please enter a value before saving.', 'warning');
             return;
           }
           if (confirm(`Do you permit OneFill to save "${field.matchedKey}: ${val}" into your personal profile?`)) {
@@ -482,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnExportFilledPdf.addEventListener('click', () => {
       const fieldValues = getActiveStudioValues();
       if (fieldValues.length === 0) {
-        alert('No fields to export.');
+        showToast('No fields to export.', 'warning');
         return;
       }
 
@@ -529,14 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function generatePrintableApplicationDoc(title, fields) {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Popup blocked. Please allow popups to download/print the filled form.');
-      return;
-    }
-
     let rowsHtml = '';
-    fields.forEach((f, idx) => {
+    fields.forEach((f) => {
       rowsHtml += `
         <tr>
           <td style="padding: 10px 14px; border-bottom: 1px solid #E5E7EB; width: 35%; font-weight: 600; color: #1F2937;">
@@ -596,8 +590,24 @@ document.addEventListener('DOMContentLoaded', () => {
       </html>
     `;
 
-    printWindow.document.write(html);
-    printWindow.document.close();
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      return;
+    }
+
+    // Fallback for sandboxed/popup-blocked iframe: download printable HTML directly
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(title || 'filled_form').toLowerCase().replace(/[^a-z0-9_-]/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Popup blocked — downloaded printable HTML application instead.', 'info');
   }
 
   // --------------------------------------------------------------------------
@@ -792,6 +802,19 @@ document.addEventListener('DOMContentLoaded', () => {
     toast.querySelector('.toast-close').addEventListener('click', () => toast.remove());
     setTimeout(() => toast.remove(), 6000);
   }
+
+  // Simulator demo submit buttons (iframe-safe replacement for inline alert)
+  document.querySelectorAll('.sim-submit-demo-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const msg = btn.getAttribute('data-demo-msg') || 'Form verified and ready for manual submission.';
+      showToast(msg, 'success');
+    });
+  });
+
+  // Sync profile when user logs in/out
+  window.addEventListener('onefill:auth-changed', () => {
+    loadProfileData();
+  });
 
   // Initial load
   loadProfileData();

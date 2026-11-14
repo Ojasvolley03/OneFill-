@@ -23,14 +23,18 @@
   let calCurrentYear = new Date().getFullYear();
   let calCurrentMonth = new Date().getMonth(); // 0-indexed
 
-  // Camera State
+  // Camera & Staging State
   let cameraStream = null;
   let stagedExtractedData = null;
   let stagedUploadFile = null;
+  let openDrawerDateStr = null;
 
-  // Notification State
+  // Notification & Real-Time Polling State
   let currentNotifications = [];
   let notifFilter = 'all';
+  const knownNotificationIds = new Set();
+  let hasLoadedNotificationsOnce = false;
+  let reminderSettingsCache = { soundEnabled: true, pushEnabled: true, inAppEnabled: true };
 
   // --------------------------------------------------------------------------
   // Initialization & Service Worker Registration
@@ -40,8 +44,8 @@
     initEventListeners();
     refreshAllData();
 
-    // Poll notifications every 30 seconds
-    setInterval(fetchNotifications, 30000);
+    // Poll backend scheduler & notifications every 15 seconds for accurate deadline alarms
+    setInterval(pollNotificationsAndTriggers, 15000);
   });
 
   async function initServiceWorker() {
@@ -208,6 +212,7 @@
     const btnCloseDrawer = document.getElementById('btn-close-day-drawer');
     if (btnCloseDrawer) {
       btnCloseDrawer.addEventListener('click', () => {
+        openDrawerDateStr = null;
         document.getElementById('calendar-day-drawer').style.display = 'none';
       });
     }
@@ -217,10 +222,27 @@
     const btnCloseRemModal = document.getElementById('btn-close-rem-modal');
     const btnCancelRemModal = document.getElementById('btn-cancel-rem-modal');
     const remForm = document.getElementById('reminder-upsert-form');
+    const remFormFileInput = document.getElementById('rem-form-file');
 
     if (btnCloseRemModal) btnCloseRemModal.addEventListener('click', closeReminderModal);
     if (btnCancelRemModal) btnCancelRemModal.addEventListener('click', closeReminderModal);
+    if (remModal) {
+      remModal.addEventListener('click', (e) => {
+        if (e.target === remModal) closeReminderModal();
+      });
+    }
     if (remForm) remForm.addEventListener('submit', handleSaveReminderSubmit);
+    if (remFormFileInput) {
+      remFormFileInput.addEventListener('change', () => {
+        const attachStatus = document.getElementById('rem-attached-status');
+        if (!attachStatus) return;
+        const picked = remFormFileInput.files && remFormFileInput.files[0];
+        if (picked) {
+          attachStatus.textContent = `Selected for upload & encryption: ${picked.name}`;
+          attachStatus.style.display = 'block';
+        }
+      });
+    }
 
     // Camera Modal
     const btnCloseCamModal = document.getElementById('btn-close-cam-modal');
@@ -316,14 +338,66 @@
         renderNotificationDropdown();
       });
     });
+
+    // Cross-module auth sync (reload reminders & notifications on sign-in / sign-out)
+    window.addEventListener('onefill:auth-changed', () => {
+      reminderSessionPromise = null;
+      knownNotificationIds.clear();
+      hasLoadedNotificationsOnce = false;
+      refreshAllData();
+      const remFormModal = document.getElementById('modal-reminder-form');
+      if (remFormModal && remFormModal.classList.contains('active')) {
+        populateVaultDocumentsSelect(document.getElementById('rem-form-vault-doc'));
+      }
+    });
+
+    // Cross-module vault documents sync
+    window.addEventListener('onefill:documents-changed', (e) => {
+      if (e.detail?.source !== 'reminders') {
+        const remFormModal = document.getElementById('modal-reminder-form');
+        if (remFormModal && remFormModal.classList.contains('active')) {
+          populateVaultDocumentsSelect(document.getElementById('rem-form-vault-doc'));
+        }
+        fetchReminders();
+      }
+    });
+
+    // Escape closes reminder modals
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeReminderModal();
+        closeCameraModal();
+        closeSettingsModal();
+        closeSnoozeModal();
+      }
+    });
   }
 
   // --------------------------------------------------------------------------
   // Data Fetching & Sync
   // --------------------------------------------------------------------------
   let reminderSessionPromise;
+  let reminderGuestToken = null;
+  try {
+    reminderGuestToken = sessionStorage.getItem('onefill_reminder_guest_token');
+  } catch (e) {}
+
+  function getReminderAuthHeaders(extraHeaders = {}) {
+    const headers = { ...extraHeaders };
+    const authToken = (window.docStorage && window.docStorage.token) || reminderGuestToken;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    return headers;
+  }
 
   function ensureReminderSession() {
+    if (window.docStorage && window.docStorage.token) {
+      return Promise.resolve({ isGuest: false });
+    }
+    if (reminderGuestToken) {
+      return Promise.resolve({ isGuest: true, token: reminderGuestToken });
+    }
     if (!reminderSessionPromise) {
       reminderSessionPromise = fetch('/api/reminders/session', { method: 'POST' })
         .then((res) => {
@@ -331,6 +405,15 @@
             throw new Error(`Reminder session initialization failed (${res.status}).`);
           }
           return res.json();
+        })
+        .then((data) => {
+          if (data && data.token) {
+            reminderGuestToken = data.token;
+            try {
+              sessionStorage.setItem('onefill_reminder_guest_token', data.token);
+            } catch (e) {}
+          }
+          return data;
         })
         .catch((err) => {
           reminderSessionPromise = null;
@@ -341,13 +424,57 @@
     return reminderSessionPromise;
   }
 
-  async function reminderFetch(...args) {
+  async function reminderFetch(url, options = {}) {
     await ensureReminderSession();
-    return fetch(...args);
+    const mergedOptions = {
+      ...options,
+      headers: getReminderAuthHeaders(options.headers || {})
+    };
+    const res = await fetch(url, mergedOptions);
+    if (res.status === 401 && !(window.docStorage && window.docStorage.token) && reminderGuestToken) {
+      reminderGuestToken = null;
+      reminderSessionPromise = null;
+      try {
+        sessionStorage.removeItem('onefill_reminder_guest_token');
+      } catch (e) {}
+      await ensureReminderSession();
+      return fetch(url, {
+        ...options,
+        headers: getReminderAuthHeaders(options.headers || {})
+      });
+    }
+    return res;
   }
 
   async function refreshAllData() {
-    await Promise.all([fetchReminders(), fetchNotifications()]);
+    await Promise.all([fetchReminders(), fetchNotifications(), loadSettingsCache()]);
+  }
+
+  async function loadSettingsCache() {
+    try {
+      const res = await reminderFetch('/api/reminders/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          reminderSettingsCache = data.settings;
+        }
+      }
+    } catch (e) {}
+  }
+
+  async function pollNotificationsAndTriggers() {
+    try {
+      const res = await reminderFetch('/api/reminders/trigger-check', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        const incoming = data.notifications || [];
+        const previousSize = currentNotifications.length;
+        await handleNotificationsPayload(data);
+        if (incoming.length !== previousSize) {
+          await fetchReminders();
+        }
+      }
+    } catch (e) {}
   }
 
   async function fetchReminders() {
@@ -427,18 +554,40 @@
   // --------------------------------------------------------------------------
   // Document Upload & Optical Scan Handling (Option 1)
   // --------------------------------------------------------------------------
+  const DANGEROUS_EXTENSIONS = ['.exe', '.bat', '.cmd', '.sh', '.msi', '.vbs', '.js', '.ps1', '.php', '.scr'];
+  const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
+
+  function validateClientUploadFile(file) {
+    if (!file) return { valid: false, reason: 'No file selected.' };
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      return { valid: false, reason: 'File size exceeds 50MB security limit.' };
+    }
+    const lowerName = (file.name || '').toLowerCase();
+    for (const badExt of DANGEROUS_EXTENSIONS) {
+      if (lowerName.endsWith(badExt)) {
+        return { valid: false, reason: `Dangerous file type "${badExt}" is blocked for security.` };
+      }
+    }
+    return { valid: true };
+  }
+
   async function handleDocumentUpload(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+
+    const check = validateClientUploadFile(file);
+    if (!check.valid) {
+      showToast(check.reason, 'error');
+      e.target.value = '';
+      return;
+    }
 
     stagedUploadFile = file;
     showToast(`Scanning "${file.name}" with OCR engine...`, 'info');
 
     try {
       // 1. Run client-side extraction via DocumentExtractor
-      const extraction = await DocumentExtractor.extract(file, (msg) => {
-        // Feedback
-      });
+      const extraction = await DocumentExtractor.extract(file, () => {});
 
       const extractedText = extraction.text || '';
 
@@ -446,6 +595,8 @@
       const analysis = DateExtractor.analyze(extractedText, file.name);
       stagedExtractedData = {
         ...analysis,
+        extractedText,
+        thumbnail: extraction.thumbnail || null,
         file: file,
         filename: file.name
       };
@@ -455,8 +606,14 @@
       showToast('Document analyzed! Review detected expiry and deadline below.', 'success');
     } catch (err) {
       console.error('Document analysis error:', err);
-      showToast('Failed to analyze document. Opening manual form.', 'error');
-      openReminderModal({ title: file.name.replace(/\.[^/.]+$/, '') });
+      stagedExtractedData = {
+        extractedText: '',
+        thumbnail: null,
+        file: file,
+        filename: file.name
+      };
+      showToast('OCR had partial results. Opening reminder form to attach & save.', 'warning');
+      openReminderModal({ title: file.name.replace(/\.[^/.]+$/, ''), file });
     } finally {
       e.target.value = '';
     }
@@ -517,6 +674,10 @@
   function applyExtractedDataToForm() {
     if (!stagedExtractedData) return;
 
+    const wrap = document.getElementById('rem-verification-wrapper');
+    if (wrap) wrap.style.display = 'none';
+
+    // Preserve stagedUploadFile & stagedExtractedData until user saves or explicitly cancels
     openReminderModal({
       title: stagedExtractedData.suggestedTitle || stagedExtractedData.documentType,
       category: stagedExtractedData.category,
@@ -524,8 +685,6 @@
       amount: stagedExtractedData.detectedAmount || '',
       file: stagedExtractedData.file
     });
-
-    dismissVerifyCard();
   }
 
   // --------------------------------------------------------------------------
@@ -661,6 +820,8 @@
         const analysis = DateExtractor.analyze(extraction.text || '', file.name);
         stagedExtractedData = {
           ...analysis,
+          extractedText: extraction.text || '',
+          thumbnail: extraction.thumbnail || null,
           file: file,
           filename: file.name
         };
@@ -790,7 +951,8 @@
     selectEl.innerHTML = '<option value="">-- No Document Linked --</option>';
 
     try {
-      const res = await fetch('/api/documents');
+      const headers = window.docStorage ? window.docStorage.getHeaders() : {};
+      const res = await fetch('/api/documents', { headers });
       if (res.ok) {
         const data = await res.json();
         const docs = data.documents || [];
@@ -809,6 +971,33 @@
   function closeReminderModal() {
     const modal = document.getElementById('modal-reminder-form');
     if (modal) modal.classList.remove('active');
+    stagedUploadFile = null;
+    stagedExtractedData = null;
+    const remFormFile = document.getElementById('rem-form-file');
+    if (remFormFile) remFormFile.value = '';
+  }
+
+  function mapReminderCategoryToVaultCategory(remCategory) {
+    switch (remCategory) {
+      case 'Government & Identity':
+      case 'Government Schemes & Tax':
+        return 'Government Documents';
+      case 'Vehicle & Transportation':
+        return 'Personal Documents';
+      case 'Electricity & Household Bills':
+        return 'Bills & Utilities';
+      case 'Banking & Finance':
+      case 'Insurance':
+        return 'Finance & Banking';
+      case 'Medical & Healthcare':
+        return 'Health & Medical';
+      case 'Education & Student':
+        return 'Education';
+      case 'Personal & Family':
+        return 'Personal Documents';
+      default:
+        return 'Other Documents';
+    }
   }
 
   async function handleSaveReminderSubmit(e) {
@@ -820,7 +1009,7 @@
     const title = document.getElementById('rem-form-title').value.trim();
     const category = document.getElementById('rem-form-category').value;
     const deadlineDate = document.getElementById('rem-form-date').value.trim();
-    const deadlineTime = document.getElementById('rem-form-time').value.trim();
+    const deadlineTime = document.getElementById('rem-form-time').value.trim() || '09:00';
     const amount = document.getElementById('rem-form-amount').value.trim();
     const notes = document.getElementById('rem-form-notes').value.trim();
     const repeatOption = document.getElementById('rem-form-repeat').value;
@@ -859,37 +1048,69 @@
 
     // Handle optional file upload to encrypted vault first
     let documentId = vaultDocId || null;
-    const fileToUpload = (newFileInput && newFileInput.files && newFileInput.files[0]) || stagedUploadFile;
+    const pickedModalFile = newFileInput && newFileInput.files && newFileInput.files[0];
+    const fileToUpload = pickedModalFile || stagedUploadFile;
 
     if (fileToUpload) {
-      try {
-        const fileBase64 = await fileToBase64(fileToUpload);
-        const docRes = await fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: fileToUpload.name,
-            title: title,
-            category: category,
-            description: `Attached to reminder: ${title}`,
-            fileBase64: fileBase64
-          })
-        });
+      const fileCheck = validateClientUploadFile(fileToUpload);
+      if (!fileCheck.valid) {
+        errorBanner.textContent = fileCheck.reason;
+        errorBanner.style.display = 'block';
+        return;
+      }
 
-        if (docRes.ok) {
-          const docData = await docRes.json();
-          documentId = docData.document?.id || documentId;
+      try {
+        let extractedText = '';
+        let thumbnail = null;
+
+        if (!pickedModalFile && stagedExtractedData && stagedExtractedData.file === fileToUpload) {
+          extractedText = stagedExtractedData.extractedText || '';
+          thumbnail = stagedExtractedData.thumbnail || null;
+        } else if (window.DocumentExtractor) {
+          const extRes = await window.DocumentExtractor.extract(fileToUpload, () => {});
+          extractedText = extRes.text || '';
+          thumbnail = extRes.thumbnail || null;
         }
+
+        // Classify into one of the 10 Document Vault categories
+        let vaultCategory = mapReminderCategoryToVaultCategory(category);
+        if (window.DocumentClassifier) {
+          const cls = window.DocumentClassifier.classify(extractedText, fileToUpload.name);
+          if (cls && cls.category && cls.category !== 'Other Documents') {
+            vaultCategory = cls.category;
+          }
+        }
+
+        const savedDoc = await window.docStorage.saveDocument(
+          {
+            title: title,
+            category: vaultCategory,
+            description: `Attached to reminder: ${title}`,
+            extractedText,
+            thumbnail
+          },
+          fileToUpload
+        );
+
+        documentId = savedDoc?.id || documentId;
+        window.dispatchEvent(new CustomEvent('onefill:documents-changed', { detail: { source: 'reminders' } }));
       } catch (uploadErr) {
-        console.warn('Vault upload warning:', uploadErr.message);
+        errorBanner.textContent = `Document upload failed: ${uploadErr.message}`;
+        errorBanner.style.display = 'block';
+        return;
       }
     }
+
+    // Compute exact UTC ISO timestamp corresponding to browser local date + time
+    const localDt = new Date(`${deadlineDate}T${deadlineTime}:00`);
+    const deadlineTimestamp = !isNaN(localDt.getTime()) ? localDt.toISOString() : null;
 
     const payload = {
       title,
       category,
       deadlineDate,
       deadlineTime,
+      deadlineTimestamp,
       amount,
       notes,
       repeatOption,
@@ -926,24 +1147,13 @@
       closeReminderModal();
       stagedUploadFile = null;
       stagedExtractedData = null;
+      if (newFileInput) newFileInput.value = '';
       showToast(id ? 'Reminder updated successfully!' : 'Reminder created successfully!', 'success');
       await refreshAllData();
     } catch (err) {
       errorBanner.textContent = err.message;
       errorBanner.style.display = 'block';
     }
-  }
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
   }
 
   // --------------------------------------------------------------------------
@@ -1153,10 +1363,27 @@
       cell.addEventListener('click', () => {
         document.querySelectorAll('.cal-day-cell').forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
+        openDrawerDateStr = dateStr;
         openCalendarDayDrawer(dateStr, matching);
       });
 
       daysGrid.appendChild(cell);
+    }
+
+    // Trailing next-month filler days to complete a clean 7-column grid
+    const totalCells = firstDay + daysInMonth;
+    const trailingCells = (7 - (totalCells % 7)) % 7;
+    for (let nextDay = 1; nextDay <= trailingCells; nextDay++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-day-cell other-month';
+      cell.innerHTML = `<span class="cal-day-number">${nextDay}</span>`;
+      daysGrid.appendChild(cell);
+    }
+
+    // Keep open day drawer synced with updated reminders
+    if (openDrawerDateStr) {
+      const matching = currentReminders.filter((r) => r.deadlineDate === openDrawerDateStr);
+      openCalendarDayDrawer(openDrawerDateStr, matching);
     }
   }
 
@@ -1295,50 +1522,70 @@
 
   async function viewAttachedDocument(docId) {
     if (!docId) return;
+    if (window.openDocumentInspectModal) {
+      await window.openDocumentInspectModal(docId);
+      return;
+    }
     try {
-      const res = await fetch(`/api/documents/${docId}`);
-      if (!res.ok) {
-        showToast('Attached document not found or access restricted.', 'error');
-        return;
-      }
-      const data = await res.json();
-      const doc = data.document;
-
-      // Open existing document preview modal
-      const previewModal = document.getElementById('preview-modal');
-      const docTitle = document.getElementById('modal-doc-title');
-      const docBody = document.getElementById('modal-doc-body');
-      const downloadBtn = document.getElementById('modal-download-action');
-
-      if (previewModal && docTitle && docBody) {
-        docTitle.textContent = doc.title || doc.name;
-        docBody.innerHTML = `
-          <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main);">
-            <div style="margin-bottom: 8px;"><strong>Category:</strong> ${escapeHtml(doc.category)}</div>
-            <div style="margin-bottom: 8px;"><strong>Filename:</strong> ${escapeHtml(doc.name)}</div>
-            <div style="margin-bottom: 8px;"><strong>SHA-256 Verified:</strong> <span style="font-family: var(--font-mono); font-size: 0.75rem;">${doc.sha256}</span></div>
-            <hr style="margin: 12px 0; border: none; border-top: 1px solid var(--border-subtle);">
-            <div><strong>Extracted Content Preview:</strong></div>
-            <pre style="margin-top: 6px; padding: 10px; background: #FAF5E8; border-radius: 6px; font-family: var(--font-mono); font-size: 0.78rem; max-height: 200px; overflow-y: auto;">${escapeHtml(doc.extractedText || 'No text content available.')}</pre>
-          </div>
-        `;
-
-        if (downloadBtn) {
-          downloadBtn.onclick = () => {
-            window.location.href = `/api/documents/${doc.id}/download`;
-          };
-        }
-
-        previewModal.classList.add('active');
-      }
+      const { blob, filename } = await window.docStorage.downloadDocument(docId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'attached_document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
       showToast('Error opening attached document.', 'error');
     }
   }
 
   // --------------------------------------------------------------------------
-  // Notifications System (In-App Bell & Unread Counter)
+  // Notifications System (In-App Bell & Unread Counter + Real-Time Alarms)
   // --------------------------------------------------------------------------
+  async function handleNotificationsPayload(data) {
+    const incoming = data.notifications || [];
+    const unreadCount = data.unreadCount || 0;
+
+    if (!hasLoadedNotificationsOnce) {
+      incoming.forEach((n) => knownNotificationIds.add(n.id));
+      hasLoadedNotificationsOnce = true;
+    } else {
+      const newlyArrived = incoming.filter((n) => !n.isRead && !knownNotificationIds.has(n.id));
+      newlyArrived.forEach((n) => {
+        knownNotificationIds.add(n.id);
+        dispatchLiveNotificationAlert(n);
+      });
+    }
+
+    currentNotifications = incoming;
+    updateNotificationBellBadge(unreadCount);
+    renderNotificationDropdown();
+  }
+
+  function dispatchLiveNotificationAlert(notif) {
+    if (reminderSettingsCache.inAppEnabled !== false) {
+      showToast(`${notif.title}`, notif.type === 'overdue' ? 'error' : 'warning');
+    }
+    if (reminderSettingsCache.soundEnabled !== false) {
+      playAlarmChime();
+    }
+    if (reminderSettingsCache.pushEnabled !== false) {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'SHOW_NOTIFICATION',
+          title: notif.title,
+          options: { body: notif.message || '' }
+        });
+      } else if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(notif.title, { body: notif.message || '', icon: '/favicon.ico' });
+        } catch (e) {}
+      }
+    }
+  }
+
   async function fetchNotifications() {
     try {
       const res = await reminderFetch('/api/reminders/notifications');
@@ -1349,11 +1596,7 @@
       }
 
       const data = await res.json();
-      currentNotifications = data.notifications || [];
-      const unreadCount = data.unreadCount || 0;
-
-      updateNotificationBellBadge(unreadCount);
-      renderNotificationDropdown();
+      await handleNotificationsPayload(data);
     } catch (e) {
       console.warn('Notifications fetch skipped:', e.message);
     }
@@ -1687,7 +1930,7 @@
     const container = document.getElementById('toast-container');
     if (!container) return;
     const toast = document.createElement('div');
-    toast.className = `toast-item toast-${type}`;
+    toast.className = `toast toast-${type}`;
     toast.textContent = message;
     container.appendChild(toast);
     setTimeout(() => {
