@@ -28,6 +28,10 @@ class DocumentStorage {
         this.currentUser = data.user;
         return this.currentUser;
       }
+      if (res.status === 401) {
+        this.token = null;
+        localStorage.removeItem('onefill_auth_token');
+      }
       this.currentUser = null;
       return null;
     } catch (e) {

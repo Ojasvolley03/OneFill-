@@ -7,7 +7,7 @@
     "dev": "node server.js",
     "start": "node server.js",
     "build": "node -c server.js && node -c db.js && node -c security.js && node -c autofill_matcher.js && node -c date_extractor.js && node -c zip_util.js && node -c emergency_pass.js",
-    "lint": "node -c server.js && node -c db.js && node -c security.js && node -c app.js && node -c storage.js && node -c autofill_ui.js && node -c reminders_ui.js && node -c emergency_pass.js && node -c classifier.js && node -c extractor.js && node -c autofill_matcher.js && node -c date_extractor.js && node -c zip_util.js && node -c sw.js",
+    "lint": "node -c server.js && node -c db.js && node -c security.js && node -c app.js && node -c storage.js && node -c autofill_ui.js && node -c reminders_ui.js && node -c emergency_pass.js && node -c classifier.js && node -c extractor.js && node -c autofill_matcher.js && node -c date_extractor.js && node -c zip_util.js && node -c sw.js && node -c extension/autofill_engine.js && node -c extension/content.js && node -c extension/popup.js",
     "test": "node test_security.js && node test_autofill.js && node test_reminders.js",
     "test:security": "node test_security.js",
     "test:autofill": "node test_autofill.js",

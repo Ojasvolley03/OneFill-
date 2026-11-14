@@ -257,3 +257,76 @@
   cursor: pointer !important;
   line-height: 1 !important;
 }
+
+/* Keep injected extension UI aligned with the OneFill dashboard. */
+.onefill-modal-overlay {
+  background: rgba(16, 29, 44, 0.55) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.onefill-modal-box {
+  border-color: #DCE3EB !important;
+  border-radius: 12px !important;
+  box-shadow: 0 18px 48px rgba(25, 43, 64, 0.18) !important;
+}
+
+.onefill-modal-header,
+.onefill-modal-footer {
+  background: #F8FAFC !important;
+  border-color: #DCE3EB !important;
+}
+
+.onefill-logo-pill,
+.onefill-btn-primary {
+  background: #315F96 !important;
+}
+
+.onefill-modal-title,
+.onefill-field-label {
+  color: #192B40 !important;
+}
+
+.onefill-modal-desc,
+.onefill-btn-secondary {
+  color: #526579 !important;
+}
+
+.onefill-field-item {
+  background: #F8FAFC !important;
+  border-color: #DCE3EB !important;
+}
+
+.onefill-field-item:hover,
+.onefill-btn-secondary:hover {
+  background: #EEF3F8 !important;
+}
+
+.onefill-field-value {
+  color: #315F96 !important;
+}
+
+.onefill-confidence-tag,
+.onefill-security-notice {
+  color: #126B5A !important;
+}
+
+.onefill-btn-primary {
+  box-shadow: none !important;
+}
+
+.onefill-btn-primary:hover {
+  background: #284F7E !important;
+}
+
+.onefill-toast-banner {
+  background: #192B40 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onefill-modal-box,
+  .onefill-autofilled-glow,
+  .onefill-toast-banner {
+    animation: none !important;
+    transition: none !important;
+  }
+}

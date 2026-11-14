@@ -545,10 +545,6 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 200, { isGuest: auth.isGuest });
         }
 
-        if (!resolveAuth(req) || parseCookies(req).onefill_reminder_guest) {
-          return sendJson(res, 401, { error: 'Unauthorized: Unable to initialize reminder session.' });
-        }
-
         const guestSession = db.createGuestSession();
         const cookieVal = `onefill_reminder_guest=${guestSession.token}; HttpOnly; SameSite=Strict; Path=/api/reminders; Max-Age=7200`;
         return sendJson(res, 200, { isGuest: true, token: guestSession.token }, { 'Set-Cookie': cookieVal });
@@ -832,7 +828,7 @@ const server = http.createServer(async (req, res) => {
         applySecurityHeaders(res);
         const extraHeaders = {
           'Content-Type': contentType,
-          'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
+          'Cache-Control': ['.html', '.css', '.js'].includes(ext) ? 'no-cache' : 'public, max-age=3600'
         };
         if (reqPath === '/onefill-updated.zip') {
           extraHeaders['Content-Disposition'] = 'attachment; filename="onefill-updated.zip"';

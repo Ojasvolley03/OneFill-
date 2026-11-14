@@ -1,6 +1,8 @@
 # OneFill — Secure AI Document Scanning & Classification System
 
-A clean, modern document management application featuring an authenticated **encrypted-at-rest vault**, client-side **OCR & text extraction**, **10-domain automatic classification**, and **Pale Cream (`#FDF6E3`) / Light Ivory** styling.
+A secure document management application featuring an authenticated **encrypted-at-rest vault**, client-side **OCR & text extraction**, **10-domain automatic classification**, and a responsive, professional slate-and-blue interface.
+
+The shared interface supports desktop, tablet, and mobile layouts across the document vault, scanner, AI AutoFill, reminders, live form simulator, Emergency Pass, and browser extension. Invalid stored authentication sessions are cleared after an explicit `401` response so guest-mode integrations can recover cleanly.
 
 ---
 
@@ -200,4 +202,3 @@ Open **`http://localhost:3000`** in any web browser.
 - **Deadline & Expiry Intelligence**: `http://localhost:3000` (Tab 3)
 - **Live Form Simulator & Extension Hub**: `http://localhost:3000` (Tab 4)
 - **Emergency Document Pass**: `http://localhost:3000` (Emergency Pass tab)
-

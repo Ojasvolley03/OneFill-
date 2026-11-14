@@ -118,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentUser) {
       updateWatermark(currentUser);
     }
+    window.dispatchEvent(new CustomEvent('onefill:auth-changed', { detail: { user: currentUser } }));
     await refreshRepository();
   }
 

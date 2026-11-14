@@ -158,12 +158,27 @@ async function runReminderTests() {
   });
   const guestCookieB = getCookie(guestSessionB.headers);
 
+  const recoveredGuestSession = await request({
+    hostname: 'localhost',
+    port: 3000,
+    path: '/api/reminders/session',
+    method: 'POST',
+    headers: { Cookie: 'onefill_reminder_guest=expired-session' }
+  });
+  const recoveredGuestCookie = getCookie(recoveredGuestSession.headers);
+
   test('Each unauthenticated browser receives a separate reminder session', () => {
     assert.strictEqual(guestSessionA.statusCode, 200);
     assert.strictEqual(guestSessionB.statusCode, 200);
     assert.ok(guestCookieA && guestCookieA.startsWith('onefill_reminder_guest='));
     assert.ok(guestCookieB && guestCookieB.startsWith('onefill_reminder_guest='));
     assert.notStrictEqual(guestCookieA, guestCookieB);
+  });
+
+  test('An expired guest cookie can initialize a fresh reminder session', () => {
+    assert.strictEqual(recoveredGuestSession.statusCode, 200);
+    assert.ok(recoveredGuestCookie && recoveredGuestCookie.startsWith('onefill_reminder_guest='));
+    assert.notStrictEqual(recoveredGuestCookie, 'onefill_reminder_guest=expired-session');
   });
 
   const guestReminderRes = await request(
