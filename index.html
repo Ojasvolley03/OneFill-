@@ -15,6 +15,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
@@ -139,6 +140,15 @@
         </svg>
         <span>Live Forms &amp; Extension Hub</span>
       </button>
+
+      <button type="button" class="app-tab-btn" id="tab-nav-emergency" data-target="view-emergency">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z"></path>
+          <path d="M12 8v8M8 12h8"></path>
+        </svg>
+        <span>Emergency Pass</span>
+        <span class="tab-badge-new">NEW</span>
+      </button>
     </nav>
 
     <!-- ====================================================================
@@ -149,6 +159,7 @@
       <section class="hero-header">
         <h1>Document <span>Scanning &amp; Classification</span></h1>
         <p>Upload documents or images to automatically extract text via OCR, scan contents, and accurately classify them into 10 structured categories.</p>
+        <button type="button" class="btn-primary emergency-shortcut" data-target="view-emergency">Open Emergency Document Pass</button>
       </section>
 
     <!-- Metrics Bar -->
@@ -380,6 +391,58 @@
     <!-- ====================================================================
          VIEW 2: AI AUTOFILL (PROFILE + FORM SCANNING & MATCHING STUDIO)
          ==================================================================== -->
+    <div id="view-emergency" class="app-view-tab" style="display: none;">
+      <section class="hero-header">
+        <h1>OneFill <span>Emergency Document Pass</span></h1>
+        <p>Review your existing encrypted vault, select only the documents you need, arrange their order, and create one organized emergency PDF.</p>
+      </section>
+
+      <section class="emergency-pass-panel panel" aria-labelledby="emergency-pass-heading">
+        <div class="emergency-pass-heading">
+          <div>
+            <h2 class="panel-title" id="emergency-pass-heading">Emergency document checklist</h2>
+            <p class="panel-subtitle">Availability is matched from existing vault metadata and OCR classification. Missing items remain private until you choose to upload.</p>
+          </div>
+          <button type="button" class="btn-secondary" id="emergency-refresh">Refresh availability</button>
+        </div>
+
+        <div class="emergency-pass-notice" id="emergency-auth-notice" role="status" hidden>
+          Sign in to securely retrieve your documents from the encrypted vault.
+          <button type="button" class="btn-link-action" id="emergency-sign-in">Sign in</button>
+        </div>
+        <div class="emergency-category-grid" id="emergency-category-list" aria-live="polite"></div>
+      </section>
+
+      <section class="emergency-pass-panel panel" aria-labelledby="emergency-selected-heading">
+        <div class="emergency-pass-heading">
+          <div>
+            <h2 class="panel-title" id="emergency-selected-heading">Selected documents</h2>
+            <p class="panel-subtitle">Use the arrows to set the final PDF order. Only these selected documents will be retrieved.</p>
+          </div>
+          <span class="emergency-selected-count" id="emergency-selected-count">0 selected</span>
+        </div>
+        <ol class="emergency-selected-list" id="emergency-selected-list"></ol>
+        <div class="emergency-pass-actions">
+          <button type="button" class="btn-primary" id="emergency-generate" disabled>Generate / Regenerate PDF</button>
+          <button type="button" class="btn-secondary" id="emergency-download" disabled>Download PDF</button>
+          <button type="button" class="btn-secondary" id="emergency-share" disabled>Share PDF</button>
+          <button type="button" class="btn-secondary" id="emergency-offline-save" disabled>Save encrypted offline copy</button>
+          <button type="button" class="btn-secondary" id="emergency-offline-open">Open offline copy</button>
+          <label class="emergency-consent">
+            <input type="checkbox" id="emergency-share-consent">
+            I consent to share the generated PDF using my device's share sheet.
+          </label>
+        </div>
+        <div class="emergency-pdf-preview" id="emergency-pdf-preview" hidden>
+          <div class="emergency-preview-heading">
+            <h3>PDF Preview</h3>
+            <button type="button" class="btn-text-sm" id="emergency-remove-pdf">Remove generated PDF</button>
+          </div>
+          <iframe id="emergency-pdf-frame" title="Emergency pass PDF preview"></iframe>
+        </div>
+      </section>
+    </div>
+
     <div id="view-autofill" class="app-view-tab" style="display: none;">
       <!-- AutoFill Intro Header -->
       <section class="hero-header">
@@ -1849,6 +1912,7 @@
   <script src="autofill_matcher.js"></script>
   <script src="autofill_ui.js"></script>
   <script src="reminders_ui.js"></script>
+  <script src="emergency_pass.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

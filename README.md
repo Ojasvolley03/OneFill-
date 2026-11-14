@@ -140,6 +140,19 @@ Located in `backend-spring-boot/`:
 
 ---
 
+## 🚑 Feature 4 — OneFill Emergency Document Pass
+
+The Emergency Pass organizes selected documents from the existing encrypted vault into one ordered, downloadable PDF.
+
+- **30 emergency categories** cover identity, contact, medical, insurance, and hospital documents. Availability is matched from existing document titles, filenames, descriptions, OCR text, and the existing document classifier; documents remain in the existing vault.
+- **Explicit selection and ordering**: users check only the documents to include, rearrange them, and remove items from the pass without deleting them from storage. Missing categories provide a shortcut to the existing scanner and upload flow.
+- **PDF generation and preview**: selected PDF pages are copied without re-rendering; images are placed in orientation-aware pages. Corrupt PDFs, unsupported file types, and selections over 100 MB report an error rather than silently omitting documents.
+- **Authenticated retrieval**: each selected file is downloaded individually through the existing ownership-checked, decrypt-and-integrity-verify endpoint. Unselected files are not retrieved for generation. The generated PDF exists in browser memory and its temporary object URL is revoked when removed, regenerated, or the page closes.
+- **Sharing consent**: sharing uses the device share sheet only after the user checks the consent box. Download remains available when device sharing is unsupported.
+- **Encrypted offline pass**: users can save the generated PDF to browser IndexedDB encrypted with AES-GCM using a passphrase-derived key (PBKDF2-SHA-256). The passphrase is not stored; the pass is unlocked locally with that passphrase.
+
+The browser PDF dependency is loaded from jsDelivr. Offline viewing is limited to Emergency Pass PDFs previously saved on that device; the main vault continues to use the existing server-side encrypted storage.
+
 ## 🧪 Automated Test Suites
 
 ### 1. Security & Storage Vault Tests
@@ -186,5 +199,5 @@ Open **`http://localhost:3000`** in any web browser.
 - **AI AutoFill & Form Studio**: `http://localhost:3000` (Tab 2)
 - **Deadline & Expiry Intelligence**: `http://localhost:3000` (Tab 3)
 - **Live Form Simulator & Extension Hub**: `http://localhost:3000` (Tab 4)
-
+- **Emergency Document Pass**: `http://localhost:3000` (Emergency Pass tab)
 
